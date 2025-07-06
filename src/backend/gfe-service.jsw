@@ -1,0 +1,921 @@
+/**
+ * Good Faith Exteriors - Wix Backend Service
+ * Server-side functions for secure operations
+ */
+
+import { fetch } from 'wix-fetch';
+import wixSecretsBackend from 'wix-secrets-backend';
+import wixData from 'wix-data';
+
+// Configuration
+const CONFIG = {
+    backendUrl: 'https://gfe-backend-837326026335.us-central1.run.app',
+    collections: {
+        leads: 'GFE_Leads',
+        quotes: 'GFE_Quotes',
+        customers: 'GFE_Customers',
+        projects: 'GFE_Projects',
+        products: 'GFE_WindowProducts',
+        appointments: 'GFE_Appointments',
+        feedback: 'GFE_CustomerFeedback',
+        analytics: 'GFE_Analytics',
+        aiEstimations: 'GFE_AIEstimations'
+    }
+};
+
+/**
+ * Make secure API call to backend
+ */
+async function makeBackendCall(endpoint, method = 'GET', data = null) {
+    try {
+        const url = `${CONFIG.backendUrl}${endpoint}`;
+        
+        const headers = {
+            'Content-Type': 'application/json',
+            'X-Wix-Site-Id': 'site-id-here' // Will be replaced with actual site ID
+        };
+        
+        // Get API key from secrets
+        try {
+            const apiKey = await wixSecretsBackend.getSecret('GFE_API_KEY');
+            if (apiKey) {
+                headers['X-API-Key'] = apiKey;
+            }
+        } catch (error) {
+            console.warn('Could not retrieve API key:', error);
+        }
+        
+        const options = {
+            method: method,
+            headers: headers
+        };
+        
+        if (data && (method === 'POST' || method === 'PUT')) {
+            options.body = JSON.stringify(data);
+        }
+        
+        const response = await fetch(url, options);
+        
+        if (!response.ok) {
+            throw new Error(`Backend call failed: ${response.status}`);
+        }
+        
+        return await response.json();
+    } catch (error) {
+        console.error(`Backend call error (${endpoint}):`, error);
+        throw error;
+    }
+}
+
+/**
+ * Submit lead securely
+ */
+export async function submitLeadSecure(leadData) {
+    try {
+        // Validate and sanitize data
+        const sanitizedData = {
+            email: leadData.email?.toLowerCase().trim(),
+            firstName: leadData.firstName?.trim(),
+            lastName: leadData.lastName?.trim(),
+            phone: leadData.phone?.replace(/\D/g, ''),
+            address: leadData.address?.trim(),
+            projectType: leadData.projectType,
+            budget: leadData.budget,
+            notes: leadData.notes?.trim(),
+            source: 'wix_site'
+        };
+        
+        // Submit to backend
+        const backendResponse = await makeBackendCall('/api/leads', 'POST', sanitizedData);
+        
+        // Also store in Wix collection
+        const wixData = await wixData.insert(CONFIG.collections.leads, {
+            ...sanitizedData,
+            createdAt: new Date(),
+            status: 'new',
+            backendId: backendResponse.lead?.id
+        });
+        
+        return {
+            success: true,
+            leadId: wixData._id,
+            backendId: backendResponse.lead?.id
+        };
+    } catch (error) {
+        console.error('Secure lead submission error:', error);
+        throw new Error('Failed to submit lead securely');
+    }
+}
+
+/**
+ * Get secure quote
+ */
+export async function getSecureQuote(quoteData, userId) {
+    try {
+        // Add user context
+        const requestData = {
+            ...quoteData,
+            userId: userId,
+            requestedAt: new Date().toISOString()
+        };
+        
+        // Get quote from backend
+        const backendResponse = await makeBackendCall('/api/quotes', 'POST', requestData);
+        
+        // Store in Wix collection
+        if (backendResponse.success) {
+            await wixData.insert(CONFIG.collections.quotes, {
+                userId: userId,
+                projectType: quoteData.projectType,
+                totalCost: backendResponse.quote.totalCost,
+                laborCost: backendResponse.quote.laborCost,
+                materialCost: backendResponse.quote.materialCost,
+                status: 'generated',
+                createdAt: new Date(),
+                backendId: backendResponse.quote.id
+            });
+        }
+        
+        return backendResponse;
+    } catch (error) {
+        console.error('Secure quote error:', error);
+        throw new Error('Failed to generate quote securely');
+    }
+}
+
+/**
+ * Process AI estimation securely
+ */
+export async function processAIEstimation(windowData) {
+    try {
+        // Validate window data
+        if (!windowData.windows || !Array.isArray(windowData.windows)) {
+            throw new Error('Invalid window data');
+        }
+        
+        // Process through backend
+        const estimation = await makeBackendCall('/api/ai/estimate', 'POST', windowData);
+        
+        // Store estimation in Wix collection
+        if (estimation.success) {
+            await wixData.insert(CONFIG.collections.aiEstimations, {
+                windowCount: windowData.windows.length,
+                projectType: windowData.projectType,
+                totalCost: estimation.estimation.totalCost,
+                laborCost: estimation.estimation.laborCost,
+                materialCost: estimation.estimation.materialCost,
+                createdAt: new Date(),
+                estimationData: estimation.estimation
+            });
+        }
+        
+        return estimation;
+    } catch (error) {
+        console.error('AI estimation error:', error);
+        throw new Error('Failed to process AI estimation');
+    }
+}
+
+/**
+ * Sync data with backend
+ */
+export async function syncDataWithBackend(collectionName, itemId) {
+    try {
+        // Get item from Wix collection
+        const item = await wixData.get(collectionName, itemId);
+        
+        if (!item) {
+            throw new Error('Item not found');
+        }
+        
+        // Determine backend endpoint based on collection
+        let endpoint;
+        switch (collectionName) {
+            case CONFIG.collections.leads:
+                endpoint = '/api/leads';
+                break;
+            case CONFIG.collections.quotes:
+                endpoint = '/api/quotes';
+                break;
+            case CONFIG.collections.customers:
+                endpoint = '/api/customers';
+                break;
+            default:
+                throw new Error('Unsupported collection for sync');
+        }
+        
+        // Sync with backend
+        const syncResponse = await makeBackendCall(endpoint, 'POST', {
+            wixId: item._id,
+            data: item,
+            syncAction: 'update'
+        });
+        
+        // Update Wix item with backend ID if needed
+        if (syncResponse.success && syncResponse.id && !item.backendId) {
+            await wixData.update(collectionName, item._id, {
+                backendId: syncResponse.id,
+                lastSynced: new Date()
+            });
+        }
+        
+        return {
+            success: true,
+            synced: true
+        };
+    } catch (error) {
+        console.error('Data sync error:', error);
+        return {
+            success: false,
+            error: error.message
+        };
+    }
+}
+
+/**
+ * Get user profile securely
+ */
+export async function getUserProfileSecure(userId) {
+    try {
+        // Get from Wix collection first
+        const wixProfile = await wixData.query(CONFIG.collections.customers)
+            .eq('userId', userId)
+            .find();
+        
+        if (wixProfile.items.length > 0) {
+            return {
+                success: true,
+                profile: wixProfile.items[0]
+            };
+        }
+        
+        // If not found in Wix, try backend
+        const backendProfile = await makeBackendCall(`/api/customer/profile?userId=${userId}`);
+        
+        return backendProfile;
+    } catch (error) {
+        console.error('Get user profile error:', error);
+        throw new Error('Failed to get user profile');
+    }
+}
+
+/**
+ * Update user profile securely
+ */
+export async function updateUserProfileSecure(userId, profileData) {
+    try {
+        // Update in backend first
+        const backendResponse = await makeBackendCall('/api/customer/profile', 'PUT', {
+            userId: userId,
+            ...profileData
+        });
+        
+        if (backendResponse.success) {
+            // Update or create in Wix collection
+            const existingProfile = await wixData.query(CONFIG.collections.customers)
+                .eq('userId', userId)
+                .find();
+            
+            if (existingProfile.items.length > 0) {
+                // Update existing
+                await wixData.update(CONFIG.collections.customers, existingProfile.items[0]._id, {
+                    ...profileData,
+                    updatedAt: new Date(),
+                    backendId: backendResponse.profile?.id
+                });
+            } else {
+                // Create new
+                await wixData.insert(CONFIG.collections.customers, {
+                    userId: userId,
+                    ...profileData,
+                    createdAt: new Date(),
+                    backendId: backendResponse.profile?.id
+                });
+            }
+        }
+        
+        return backendResponse;
+    } catch (error) {
+        console.error('Update user profile error:', error);
+        throw new Error('Failed to update user profile');
+    }
+}
+
+/**
+ * Log analytics event securely
+ */
+export async function logAnalyticsEvent(eventName, eventData) {
+    try {
+        const analyticsData = {
+            event: eventName,
+            data: eventData,
+            timestamp: new Date().toISOString(),
+            source: 'wix_backend'
+        };
+        
+        // Store in Wix collection
+        await wixData.insert(CONFIG.collections.analytics, analyticsData);
+        
+        // Send to backend for processing
+        try {
+            await makeBackendCall('/api/analytics/track', 'POST', analyticsData);
+        } catch (error) {
+            console.warn('Failed to send analytics to backend:', error);
+        }
+        
+        return { success: true };
+    } catch (error) {
+        console.error('Analytics logging error:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Validate and sanitize input data
+ */
+function sanitizeInput(data) {
+    if (typeof data === 'string') {
+        return data.trim().replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
+    }
+    
+    if (typeof data === 'object' && data !== null) {
+        const sanitized = {};
+        for (const [key, value] of Object.entries(data)) {
+            sanitized[key] = sanitizeInput(value);
+        }
+        return sanitized;
+    }
+    
+    return data;
+}
+
+/**
+ * Rate limiting helper
+ */
+const rateLimitMap = new Map();
+
+function checkRateLimit(identifier, maxRequests = 10, windowMs = 60000) {
+    const now = Date.now();
+    const windowStart = now - windowMs;
+    
+    if (!rateLimitMap.has(identifier)) {
+        rateLimitMap.set(identifier, []);
+    }
+    
+    const requests = rateLimitMap.get(identifier);
+    
+    // Remove old requests
+    const validRequests = requests.filter(time => time > windowStart);
+    
+    if (validRequests.length >= maxRequests) {
+        return false; // Rate limit exceeded
+    }
+    
+    validRequests.push(now);
+    rateLimitMap.set(identifier, validRequests);
+    
+    return true; // Request allowed
+}
+
+/**
+ * Rate-limited API wrapper
+ */
+export async function rateLimitedApiCall(identifier, apiFunction, ...args) {
+    if (!checkRateLimit(identifier)) {
+        throw new Error('Rate limit exceeded. Please try again later.');
+    }
+    
+    return await apiFunction(...args);
+}
+
+/**
+ * AI Chat with Claude integration
+ */
+export async function aiChatWithClaude(message, conversationHistory = [], customerContext = {}, imageData = null) {
+    try {
+        if (!checkRateLimit('ai_chat', 5, 60000)) { // 5 requests per minute
+            throw new Error('AI chat rate limit exceeded. Please wait before sending another message.');
+        }
+        
+        // Sanitize input
+        const sanitizedMessage = sanitizeInput(message);
+        const sanitizedHistory = conversationHistory.map(msg => ({
+            role: sanitizeInput(msg.role),
+            content: sanitizeInput(msg.content)
+        }));
+        
+        // Prepare request data
+        const requestData = {
+            message: sanitizedMessage,
+            history: sanitizedHistory,
+            context: customerContext,
+            image_data: imageData
+        };
+        
+        // Call backend AI chat endpoint
+        const aiResponse = await makeBackendCall('/api/ai/chat', 'POST', requestData);
+        
+        if (aiResponse.success) {
+            // Store conversation in Wix collection
+            await wixData.insert(CONFIG.collections.analytics, {
+                eventType: 'ai_chat',
+                message: sanitizedMessage,
+                response: aiResponse.response,
+                leadCaptured: aiResponse.lead_captured,
+                timestamp: new Date(),
+                usage: aiResponse.usage
+            });
+            
+            // If lead was captured, store it
+            if (aiResponse.lead_captured && aiResponse.lead_data) {
+                await wixData.insert(CONFIG.collections.leads, {
+                    ...aiResponse.lead_data,
+                    source: 'ai_chat',
+                    createdAt: new Date(),
+                    status: 'new'
+                });
+            }
+        }
+        
+        return aiResponse;
+        
+    } catch (error) {
+        console.error('AI chat error:', error);
+        throw new Error('Failed to process AI chat request');
+    }
+}
+
+/**
+ * Submit lead through AI chat system
+ */
+export async function submitLeadThroughAI(leadData) {
+    try {
+        // Validate required fields
+        const requiredFields = ['full_name', 'email', 'inquiry_type', 'message'];
+        for (const field of requiredFields) {
+            if (!leadData[field]) {
+                throw new Error(`Missing required field: ${field}`);
+            }
+        }
+        
+        // Sanitize and validate data
+        const sanitizedData = {
+            full_name: sanitizeInput(leadData.full_name),
+            email: sanitizeInput(leadData.email).toLowerCase(),
+            phone_number: leadData.phone_number ? sanitizeInput(leadData.phone_number) : '',
+            inquiry_type: sanitizeInput(leadData.inquiry_type),
+            message: sanitizeInput(leadData.message),
+            address: leadData.address ? sanitizeInput(leadData.address) : '',
+            source: 'ai_chat_form'
+        };
+        
+        // Submit to backend
+        const backendResponse = await makeBackendCall('/api/leads/capture', 'POST', sanitizedData);
+        
+        // Also store in Wix collection
+        if (backendResponse.success) {
+            const wixRecord = await wixData.insert(CONFIG.collections.leads, {
+                ...sanitizedData,
+                createdAt: new Date(),
+                status: 'new',
+                backendId: backendResponse.lead_id
+            });
+            
+            return {
+                success: true,
+                leadId: wixRecord._id,
+                backendId: backendResponse.lead_id,
+                message: 'Lead submitted successfully'
+            };
+        }
+        
+        return backendResponse;
+        
+    } catch (error) {
+        console.error('AI lead submission error:', error);
+        throw new Error('Failed to submit lead through AI system');
+    }
+}
+
+/**
+ * Get AI estimation for windows
+ */
+export async function getAIWindowEstimation(windowData, customerInfo = {}) {
+    try {
+        if (!checkRateLimit('ai_estimation', 3, 60000)) { // 3 requests per minute
+            throw new Error('AI estimation rate limit exceeded. Please wait before requesting another estimate.');
+        }
+        
+        // Validate window data
+        if (!windowData.windows || !Array.isArray(windowData.windows)) {
+            throw new Error('Invalid window data provided');
+        }
+        
+        // Sanitize window data
+        const sanitizedData = {
+            windows: windowData.windows.map(window => ({
+                width: window.width,
+                height: window.height,
+                type: sanitizeInput(window.type),
+                material: sanitizeInput(window.material),
+                quality: sanitizeInput(window.quality),
+                location: sanitizeInput(window.location || '')
+            })),
+            projectType: sanitizeInput(windowData.projectType),
+            propertyType: sanitizeInput(windowData.propertyType || ''),
+            timeline: sanitizeInput(windowData.timeline || ''),
+            customerInfo: {
+                name: sanitizeInput(customerInfo.name || ''),
+                email: sanitizeInput(customerInfo.email || ''),
+                address: sanitizeInput(customerInfo.address || '')
+            }
+        };
+        
+        // Get estimation from backend
+        const estimationResponse = await makeBackendCall('/api/ai/estimate', 'POST', sanitizedData);
+        
+        if (estimationResponse.success) {
+            // Store estimation in Wix collection
+            await wixData.insert(CONFIG.collections.aiEstimations, {
+                windowData: sanitizedData,
+                estimation: estimationResponse.estimation,
+                customerInfo: sanitizedData.customerInfo,
+                createdAt: new Date(),
+                usage: estimationResponse.usage
+            });
+        }
+        
+        return estimationResponse;
+        
+    } catch (error) {
+        console.error('AI estimation error:', error);
+        throw new Error('Failed to get AI window estimation');
+    }
+}
+
+/**
+ * Upload image to backend storage
+ */
+export async function uploadImageToBackend(imageData, uploadType = 'general', metadata = {}) {
+    try {
+        if (!checkRateLimit('image_upload', 5, 60000)) { // 5 uploads per minute
+            throw new Error('Image upload rate limit exceeded. Please wait before uploading another image.');
+        }
+        
+        // Validate image data
+        if (!imageData) {
+            throw new Error('Image data is required');
+        }
+        
+        // Prepare upload data
+        const uploadData = {
+            image_data: imageData,
+            bucket_type: uploadType === 'quote' ? 'quotes' : uploadType === 'inspection' ? 'inspections' : 'images',
+            metadata: {
+                ...metadata,
+                upload_source: 'wix_frontend',
+                timestamp: new Date().toISOString()
+            }
+        };
+        
+        // Add filename if not provided
+        if (!uploadData.filename) {
+            const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+            uploadData.filename = `${uploadType}_${timestamp}.jpg`;
+        }
+        
+        // Upload to backend
+        const uploadResponse = await makeBackendCall('/api/images/upload', 'POST', uploadData);
+        
+        if (uploadResponse.success) {
+            // Store upload record in Wix collection
+            await wixData.insert(CONFIG.collections.analytics, {
+                eventType: 'image_upload',
+                uploadType: uploadType,
+                bucketType: uploadData.bucket_type,
+                gsUrl: uploadResponse.gs_url,
+                publicUrl: uploadResponse.public_url,
+                fileSize: uploadResponse.size,
+                metadata: uploadResponse.metadata,
+                timestamp: new Date(),
+                firestoreId: uploadResponse.firestore_id
+            });
+        }
+        
+        return uploadResponse;
+        
+    } catch (error) {
+        console.error('Image upload error:', error);
+        throw new Error('Failed to upload image to backend storage');
+    }
+}
+
+/**
+ * Upload quote comparison images
+ */
+export async function uploadQuoteComparisonImages(imageData, quoteData, customerInfo) {
+    try {
+        // Generate unique quote ID if not provided
+        const quoteId = quoteData.quote_id || `quote_${Date.now()}`;
+        
+        const uploadData = {
+            image_data: imageData,
+            quote_data: {
+                ...quoteData,
+                quote_id: quoteId
+            },
+            customer_info: sanitizeInput(customerInfo),
+            filename: `quote_${quoteId}_${Date.now()}.jpg`
+        };
+        
+        // Upload to backend quote endpoint
+        const uploadResponse = await makeBackendCall('/api/images/quote-upload', 'POST', uploadData);
+        
+        if (uploadResponse.success) {
+            // Store quote upload record in Wix
+            await wixData.insert(CONFIG.collections.quotes, {
+                quoteId: quoteId,
+                customerInfo: uploadData.customer_info,
+                imageUrl: uploadResponse.public_url,
+                gsUrl: uploadResponse.gs_url,
+                uploadTimestamp: new Date(),
+                status: 'image_uploaded',
+                backendRecordId: uploadResponse.quote_record_id
+            });
+        }
+        
+        return uploadResponse;
+        
+    } catch (error) {
+        console.error('Quote image upload error:', error);
+        throw new Error('Failed to upload quote comparison images');
+    }
+}
+
+/**
+ * Upload property inspection photos
+ */
+export async function uploadPropertyInspectionPhotos(images, inspectionData, propertyInfo) {
+    try {
+        const inspectionId = inspectionData.inspection_id || `inspection_${Date.now()}`;
+        const uploadResults = [];
+        
+        // Upload each image
+        for (let i = 0; i < images.length; i++) {
+            const imageData = images[i];
+            
+            const uploadData = {
+                image_data: imageData,
+                inspection_data: {
+                    ...inspectionData,
+                    inspection_id: inspectionId,
+                    image_index: i
+                },
+                property_info: sanitizeInput(propertyInfo),
+                filename: `inspection_${inspectionId}_${i + 1}_${Date.now()}.jpg`,
+                auto_analyze: inspectionData.auto_analyze || false
+            };
+            
+            const uploadResponse = await makeBackendCall('/api/images/property-inspection', 'POST', uploadData);
+            uploadResults.push(uploadResponse);
+            
+            if (uploadResponse.success) {
+                // Store inspection record in Wix
+                await wixData.insert(CONFIG.collections.projects, {
+                    inspectionId: inspectionId,
+                    imageIndex: i,
+                    propertyInfo: uploadData.property_info,
+                    inspectionData: uploadData.inspection_data,
+                    imageUrl: uploadResponse.public_url,
+                    gsUrl: uploadResponse.gs_url,
+                    uploadTimestamp: new Date(),
+                    analysisStatus: 'pending',
+                    backendRecordId: uploadResponse.inspection_record_id
+                });
+            }
+        }
+        
+        return {
+            success: true,
+            inspection_id: inspectionId,
+            total_images: images.length,
+            upload_results: uploadResults,
+            successful_uploads: uploadResults.filter(r => r.success).length
+        };
+        
+    } catch (error) {
+        console.error('Property inspection upload error:', error);
+        throw new Error('Failed to upload property inspection photos');
+    }
+}
+
+/**
+ * Get AI analysis for uploaded window images
+ */
+export async function getWindowImageAnalysis(imageData, analysisType = 'measurement', customerContext = {}) {
+    try {
+        if (!checkRateLimit('ai_analysis', 3, 60000)) { // 3 analyses per minute
+            throw new Error('AI analysis rate limit exceeded. Please wait before requesting another analysis.');
+        }
+        
+        // First upload the image
+        const uploadResult = await uploadImageToBackend(imageData, 'analysis', {
+            analysis_type: analysisType,
+            customer_context: customerContext
+        });
+        
+        if (!uploadResult.success) {
+            throw new Error('Failed to upload image for analysis');
+        }
+        
+        // Request AI analysis
+        const analysisData = {
+            image_url: uploadResult.public_url,
+            gs_url: uploadResult.gs_url,
+            analysis_type: analysisType,
+            customer_context: customerContext
+        };
+        
+        const analysisResponse = await makeBackendCall('/api/ai/analyze-image', 'POST', analysisData);
+        
+        if (analysisResponse.success) {
+            // Store analysis result in Wix
+            await wixData.insert(CONFIG.collections.aiEstimations, {
+                imageUrl: uploadResult.public_url,
+                analysisType: analysisType,
+                customerContext: customerContext,
+                analysisResult: analysisResponse.analysis,
+                analysisId: analysisResponse.analysis_id,
+                confidence: analysisResponse.confidence,
+                timestamp: new Date(),
+                backendRecordId: analysisResponse.analysis_id
+            });
+        }
+        
+        return analysisResponse;
+        
+    } catch (error) {
+        console.error('Window image analysis error:', error);
+        throw new Error('Failed to get AI analysis for window image');
+    }
+}
+
+/**
+ * List uploaded images from storage
+ */
+export async function listUploadedImages(bucketType = 'images', prefix = '', limit = 50) {
+    try {
+        const params = new URLSearchParams({
+            bucket_type: bucketType,
+            prefix: prefix,
+            limit: Math.min(limit, 100).toString()
+        });
+        
+        const response = await makeBackendCall(`/api/images/list?${params.toString()}`);
+        
+        return response;
+        
+    } catch (error) {
+        console.error('List images error:', error);
+        throw new Error('Failed to list uploaded images');
+    }
+}
+
+/**
+ * Get storage statistics
+ */
+export async function getStorageStatistics() {
+    try {
+        const response = await makeBackendCall('/api/storage/stats');
+        
+        if (response.success) {
+            // Store stats in Wix for dashboard display
+            await wixData.insert(CONFIG.collections.analytics, {
+                eventType: 'storage_stats',
+                stats: response.stats,
+                timestamp: new Date()
+            });
+        }
+        
+        return response;
+        
+    } catch (error) {
+        console.error('Storage statistics error:', error);
+        throw new Error('Failed to get storage statistics');
+    }
+}
+
+/**
+ * Process multiple window images for comprehensive analysis
+ */
+export async function processMultipleWindowImages(images, projectData, customerInfo) {
+    try {
+        const processingId = `multi_${Date.now()}`;
+        const results = [];
+        
+        for (let i = 0; i < images.length; i++) {
+            const imageData = images[i];
+            
+            try {
+                // Upload and analyze each image
+                const analysis = await getWindowImageAnalysis(
+                    imageData,
+                    'measurement',
+                    {
+                        ...customerInfo,
+                        project_data: projectData,
+                        processing_id: processingId,
+                        image_index: i,
+                        total_images: images.length
+                    }
+                );
+                
+                results.push({
+                    image_index: i,
+                    success: true,
+                    analysis: analysis
+                });
+                
+            } catch (error) {
+                results.push({
+                    image_index: i,
+                    success: false,
+                    error: error.message
+                });
+            }
+        }
+        
+        // Store comprehensive project record
+        await wixData.insert(CONFIG.collections.projects, {
+            processingId: processingId,
+            projectData: projectData,
+            customerInfo: customerInfo,
+            totalImages: images.length,
+            successfulAnalyses: results.filter(r => r.success).length,
+            results: results,
+            timestamp: new Date(),
+            status: 'analysis_complete'
+        });
+        
+        return {
+            success: true,
+            processing_id: processingId,
+            total_images: images.length,
+            successful_analyses: results.filter(r => r.success).length,
+            results: results
+        };
+        
+    } catch (error) {
+        console.error('Multiple window images processing error:', error);
+        throw new Error('Failed to process multiple window images');
+    }
+}
+
+/**
+ * Load image URLs configuration
+ */
+export async function getImageUrls() {
+    try {
+        // For now, return the static configuration
+        // In a production environment, this could be loaded from Wix Data or external source
+        return {
+            gfe_branding: {
+                logo_with_brands: "https://static.wixstatic.com/media/10d52d_6d032bfecefb4df69e68bf7dc26fbd92~mv2.png",
+                logo_square: "https://static.wixstatic.com/media/10d52d_91ba6fdf18634b31b4ebedf5f0f7f8d3~mv2.png",
+                logo_landscape: "https://static.wixstatic.com/media/10d52d_651a76065cb8426294f04e1b7483a3a2~mv2.png",
+                gf_estimator_logo: "https://static.wixstatic.com/media/10d52d_d988707487cd498ab95e653e09f5ca4a~mv2.png"
+            },
+            feature_icons: {
+                ai_window_measure: "https://static.wixstatic.com/media/10d52d_1f0bc35da9f64cfaaf3e7bdd0e19e46d~mv2.png",
+                grid_flow_engine: "https://static.wixstatic.com/media/10d52d_eea1622cce0b4367b734bb51a0d81eb8~mv2.jpg",
+                ai_window_measure_tool: "https://static.wixstatic.com/media/10d52d_75a7fe388bbd430cbb8b880f0f2a4914~mv2.png"
+            },
+            brand_logos: {
+                marvin: "https://static.wixstatic.com/media/10d52d_7df98cb648bb485d8e2f0922a3da18f4~mv2.jpeg",
+                andersen: "https://static.wixstatic.com/media/10d52d_19c62f7d131445829ff8fdde2b581b98~mv2.jpeg",
+                pella: "https://static.wixstatic.com/media/10d52d_739b01217f084e21a41dd8591b98e6b8~mv2.jpeg",
+                provia: "https://static.wixstatic.com/media/10d52d_bcbbb5675e7b496891f63cb64e37fa07~mv2.png",
+                windsor: "https://static.wixstatic.com/media/10d52d_da963919e25c46c9bd735ee4bbce0da9~mv2.jpeg",
+                thermo_tech: "https://static.wixstatic.com/media/10d52d_a333c0355ff14c6cb0ac68755b29b1f3~mv2.jpeg"
+            },
+            window_types: {
+                awning: "https://static.wixstatic.com/media/10d52d_35742c77270640e7bce240ef7280568c~mv2.png",
+                casement: "https://static.wixstatic.com/media/10d52d_79a4cd4776a94ba2a958989178a6ee7f~mv2.png",
+                bay: "https://static.wixstatic.com/media/10d52d_27545cce879743aeb6e85256d4837f97~mv2.png",
+                slider: "https://static.wixstatic.com/media/10d52d_d4baffa175394b2c88b4f75dfd833eeb~mv2.png",
+                single_hung: "https://static.wixstatic.com/media/10d52d_b7c5f1d8d75d4eb7b3d5e049a012527d~mv2.png",
+                picture: "https://static.wixstatic.com/media/10d52d_12cbfe1efc744559b497c3acbf43fe8f~mv2.png",
+                double_hung: "https://static.wixstatic.com/media/10d52d_b8bfb21fc4d6460ebce21673473667f5~mv2.png"
+            },
+            door_types: {
+                entry_door: "https://static.wixstatic.com/media/10d52d_bcaf2da6be774a72a562e3dc7527ec90~mv2.png",
+                french_wood_patio: "https://static.wixstatic.com/media/10d52d_a82cc4c9bc8a423faa37a740b4ca9d61~mv2.png",
+                sliding_patio: "https://static.wixstatic.com/media/10d52d_8c1bf015415149e6b1cfb8a48aab3cc9~mv2.png"
+            }
+        };
+    } catch (error) {
+        console.error('Error loading image URLs:', error);
+        return {};
+    }
+}
+

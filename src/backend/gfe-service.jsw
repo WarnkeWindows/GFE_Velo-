@@ -7,9 +7,12 @@ import { fetch } from 'wix-fetch';
 import wixSecretsBackend from 'wix-secrets-backend';
 import wixData from 'wix-data';
 
-// Configuration
+// Configuration - Main Site (Production)
 const CONFIG = {
-    backendUrl: 'https://gfe-backend-837326026335.us-central1.run.app',
+    siteId: '5ec64f41-3f5e-4ba1-b9fc-018d3a8681a4',
+    appId: '14ce1214-b278-a7e4-1373-00cebd1bef7c',
+    environment: 'production',
+    backendUrl: 'https://gfe-api-gateway-aonuaov3.uc.gateway.dev',
     collections: {
         leads: 'GFE_Leads',
         quotes: 'GFE_Quotes',
@@ -19,9 +22,100 @@ const CONFIG = {
         appointments: 'GFE_Appointments',
         feedback: 'GFE_CustomerFeedback',
         analytics: 'GFE_Analytics',
-        aiEstimations: 'GFE_AIEstimations'
+        aiEstimations: 'GFE_AIEstimations',
+        oauthTokens: 'GFE_OAuth_Tokens'
+    },
+    oauth: {
+        clientId: '14ce1214-b278-a7e4-1373-00cebd1bef7c',
+        tokenUrl: 'https://www.wixapis.com/oauth2/token',
+        scope: 'wix.stores.read wix.stores.write wix.data.read wix.data.write wix.site.read wix.site.write wix.members.read wix.members.write wix.orders.read wix.orders.write wix.webhooks.read wix.webhooks.write wix.crm.read wix.crm.write'
     }
 };
+
+/**
+ * Get OAuth access token using client credentials (headless)
+ */
+async function getOAuthToken() {
+    try {
+        const clientSecret = await wixSecretsBackend.getSecret('WIX_APP_SECRET');
+        if (!clientSecret) {
+            throw new Error('Client secret not found');
+        }
+        
+        const tokenRequest = {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'Accept': 'application/json'
+            },
+            body: new URLSearchParams({
+                grant_type: 'client_credentials',
+                client_id: CONFIG.oauth.clientId,
+                client_secret: clientSecret,
+                scope: CONFIG.oauth.scope
+            })
+        };
+        
+        const response = await fetch(CONFIG.oauth.tokenUrl, tokenRequest);
+        
+        if (!response.ok) {
+            throw new Error(`OAuth failed: ${response.status}`);
+        }
+        
+        const tokenData = await response.json();
+        
+        // Cache token
+        const tokenInfo = {
+            access_token: tokenData.access_token,
+            token_type: tokenData.token_type || 'Bearer',
+            expires_in: tokenData.expires_in || 3600,
+            created_at: new Date(),
+            site_id: CONFIG.siteId
+        };
+        
+        try {
+            await wixData.insert(CONFIG.collections.oauthTokens, tokenInfo);
+        } catch (error) {
+            console.warn('Failed to cache OAuth token:', error);
+        }
+        
+        return tokenInfo;
+    } catch (error) {
+        console.error('OAuth token error:', error);
+        throw error;
+    }
+}
+
+/**
+ * Get valid OAuth token (cached or new)
+ */
+async function getValidOAuthToken() {
+    try {
+        // Check for cached token
+        const tokens = await wixData.query(CONFIG.collections.oauthTokens)
+            .eq('site_id', CONFIG.siteId)
+            .descending('created_at')
+            .limit(1)
+            .find();
+        
+        if (tokens.items.length > 0) {
+            const tokenInfo = tokens.items[0];
+            const createdAt = new Date(tokenInfo.created_at);
+            const expiresAt = new Date(createdAt.getTime() + (tokenInfo.expires_in * 1000));
+            
+            // Check if token is still valid (with 5 minute buffer)
+            if (expiresAt.getTime() > Date.now() + (5 * 60 * 1000)) {
+                return tokenInfo;
+            }
+        }
+        
+        // Get new token
+        return await getOAuthToken();
+    } catch (error) {
+        console.error('Error getting valid OAuth token:', error);
+        return await getOAuthToken();
+    }
+}
 
 /**
  * Make secure API call to backend
@@ -32,7 +126,9 @@ async function makeBackendCall(endpoint, method = 'GET', data = null) {
         
         const headers = {
             'Content-Type': 'application/json',
-            'X-Wix-Site-Id': 'site-id-here' // Will be replaced with actual site ID
+            'X-Wix-Site-Id': CONFIG.siteId,
+            'X-Wix-App-Id': CONFIG.appId,
+            'X-Environment': CONFIG.environment
         };
         
         // Get API key from secrets

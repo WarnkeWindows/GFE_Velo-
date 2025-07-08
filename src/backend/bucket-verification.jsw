@@ -1,0 +1,629 @@
+/**
+ * Google Cloud Storage Bucket Verification Service
+ * File: backend/bucket-verification.jsw
+ * 
+ * Verifies bucket configurations and determines sync capabilities
+ */
+
+import wixData from 'wix-data';
+import wixSecrets from 'wix-secrets-backend';
+import { fetch } from 'wix-fetch';
+
+// Comprehensive bucket configuration with purposes and sync strategies
+const BUCKET_CONFIGURATIONS = {
+    // Core Data Buckets
+    'gfe-ai-training-data': {
+        purpose: 'AI model training datasets and image analysis data',
+        syncStrategy: 'structured_data',
+        targetCollections: ['AIWindowMeasurements', 'AITrainingData', 'ModelPerformance'],
+        expectedFileTypes: ['.json', '.csv', '.txt', '.jpg', '.png'],
+        features: [
+            'window_detection_training',
+            'material_classification_data',
+            'condition_assessment_models',
+            'measurement_calibration'
+        ],
+        priority: 'high',
+        autoSync: true
+    },
+    
+    'gfe-pricing-matrix': {
+        purpose: 'Pricing calculations, cost matrices, and market data',
+        syncStrategy: 'structured_data',
+        targetCollections: ['PricingMatrix', 'GFE_WindowBrands', 'GFE_WindowOptions'],
+        expectedFileTypes: ['.json', '.csv', '.xlsx'],
+        features: [
+            'dynamic_pricing',
+            'material_cost_calculations',
+            'labor_rate_matrices',
+            'market_adjustments'
+        ],
+        priority: 'high',
+        autoSync: true
+    },
+    
+    'window-products': {
+        purpose: 'Complete window product catalog and specifications',
+        syncStrategy: 'product_catalog',
+        targetCollections: ['GFE_WindowProducts', 'GFE_WindowTypes', 'ProductCatalog'],
+        expectedFileTypes: ['.json', '.xml', '.csv'],
+        features: [
+            'product_specifications',
+            'energy_ratings',
+            'warranty_information',
+            'installation_requirements'
+        ],
+        priority: 'high',
+        autoSync: true
+    },
+    
+    'gfe-property-inspections': {
+        purpose: 'Property inspection reports and assessment data',
+        syncStrategy: 'inspection_data',
+        targetCollections: ['PropertyInspections', 'InspectionReports', 'MaintenanceSchedule'],
+        expectedFileTypes: ['.json', '.pdf', '.jpg', '.png'],
+        features: [
+            'condition_assessments',
+            'replacement_recommendations',
+            'maintenance_schedules',
+            'photo_documentation'
+        ],
+        priority: 'medium',
+        autoSync: true
+    },
+    
+    'gfe-quote-uploads': {
+        purpose: 'Customer quotes, estimates, and proposal data',
+        syncStrategy: 'quote_data',
+        targetCollections: ['GFE_Quotes', 'CustomerEstimates', 'ProposalHistory'],
+        expectedFileTypes: ['.json', '.pdf', '.docx'],
+        features: [
+            'automated_quote_generation',
+            'proposal_templates',
+            'pricing_calculations',
+            'customer_communications'
+        ],
+        priority: 'high',
+        autoSync: true
+    },
+    
+    // Knowledge and Content Buckets
+    'knowledge-base-bucket-good-faith-exteriors': {
+        purpose: 'Knowledge base articles, installation guides, and documentation',
+        syncStrategy: 'content_management',
+        targetCollections: ['KnowledgeBase', 'InstallationGuides', 'TechnicalDocs'],
+        expectedFileTypes: ['.md', '.html', '.txt', '.pdf'],
+        features: [
+            'installation_procedures',
+            'troubleshooting_guides',
+            'product_documentation',
+            'best_practices'
+        ],
+        priority: 'medium',
+        autoSync: false
+    },
+    
+    'knowledge-base-docs-good-faith-exteriors': {
+        purpose: 'Extended documentation and training materials',
+        syncStrategy: 'document_library',
+        targetCollections: ['DocumentLibrary', 'TrainingMaterials', 'Procedures'],
+        expectedFileTypes: ['.pdf', '.docx', '.pptx', '.md'],
+        features: [
+            'training_materials',
+            'certification_guides',
+            'safety_procedures',
+            'quality_standards'
+        ],
+        priority: 'low',
+        autoSync: false
+    },
+    
+    // Asset and Media Buckets
+    'goodfaithexteriors-widgets': {
+        purpose: 'Widget configurations, iframe templates, and interactive components',
+        syncStrategy: 'widget_assets',
+        targetCollections: ['WidgetConfigurations', 'UIComponents', 'InteractiveElements'],
+        expectedFileTypes: ['.html', '.js', '.css', '.json'],
+        features: [
+            'price_calculator_widget',
+            'window_visualizer',
+            'ai_chat_interface',
+            'lead_capture_forms'
+        ],
+        priority: 'high',
+        autoSync: false
+    },
+    
+    'gfe-static-pages': {
+        purpose: 'Static page content and website assets',
+        syncStrategy: 'static_content',
+        targetCollections: ['StaticContent', 'PageAssets', 'WebResources'],
+        expectedFileTypes: ['.html', '.css', '.js', '.json', '.jpg', '.png'],
+        features: [
+            'landing_pages',
+            'product_showcases',
+            'testimonial_galleries',
+            'resource_libraries'
+        ],
+        priority: 'medium',
+        autoSync: false
+    },
+    
+    'image-analysis-library': {
+        purpose: 'Image processing results and visual analysis data',
+        syncStrategy: 'image_analysis',
+        targetCollections: ['ImageAnalysis', 'VisualInspections', 'PhotoLibrary'],
+        expectedFileTypes: ['.json', '.jpg', '.png', '.tiff'],
+        features: [
+            'automated_window_detection',
+            'condition_analysis',
+            'measurement_extraction',
+            'damage_assessment'
+        ],
+        priority: 'high',
+        autoSync: true
+    },
+    
+    // Google Cloud Vision Buckets
+    'vision-input-837326026335': {
+        purpose: 'Input images for Google Cloud Vision processing',
+        syncStrategy: 'vision_input',
+        targetCollections: ['VisionInput', 'ImageQueue', 'ProcessingQueue'],
+        expectedFileTypes: ['.jpg', '.png', '.tiff', '.bmp'],
+        features: [
+            'image_preprocessing',
+            'batch_processing',
+            'quality_validation',
+            'format_conversion'
+        ],
+        priority: 'medium',
+        autoSync: true
+    },
+    
+    'vision-annotations-837326026335': {
+        purpose: 'Google Cloud Vision API annotations and analysis results',
+        syncStrategy: 'vision_results',
+        targetCollections: ['VisionAnnotations', 'ObjectDetection', 'TextRecognition'],
+        expectedFileTypes: ['.json', '.xml'],
+        features: [
+            'object_detection_results',
+            'text_recognition_data',
+            'face_detection',
+            'landmark_identification'
+        ],
+        priority: 'high',
+        autoSync: true
+    },
+    
+    'vision-code-837326026335': {
+        purpose: 'Vision processing code, models, and configurations',
+        syncStrategy: 'code_assets',
+        targetCollections: ['VisionModels', 'ProcessingConfigs', 'AlgorithmSettings'],
+        expectedFileTypes: ['.py', '.json', '.yaml', '.pkl'],
+        features: [
+            'custom_vision_models',
+            'processing_algorithms',
+            'configuration_templates',
+            'model_weights'
+        ],
+        priority: 'low',
+        autoSync: false
+    },
+    
+    // Storage and Backup Buckets
+    'good-faith-exteriors-gfe-assets': {
+        purpose: 'Company assets, branding, and marketing materials',
+        syncStrategy: 'asset_management',
+        targetCollections: ['CompanyAssets', 'BrandingMaterials', 'MarketingContent'],
+        expectedFileTypes: ['.jpg', '.png', '.svg', '.pdf', '.ai'],
+        features: [
+            'logo_variations',
+            'marketing_templates',
+            'product_photography',
+            'brand_guidelines'
+        ],
+        priority: 'low',
+        autoSync: false
+    },
+    
+    'good-faith-exteriors-gfe-backups': {
+        purpose: 'System backups and data recovery files',
+        syncStrategy: 'backup_management',
+        targetCollections: ['BackupLogs', 'RecoveryPoints', 'ArchiveIndex'],
+        expectedFileTypes: ['.sql', '.json', '.tar', '.zip'],
+        features: [
+            'database_backups',
+            'configuration_snapshots',
+            'data_recovery',
+            'version_control'
+        ],
+        priority: 'low',
+        autoSync: false
+    },
+    
+    'good-faith-exteriors-gfe-logs': {
+        purpose: 'System logs, monitoring data, and analytics',
+        syncStrategy: 'log_analysis',
+        targetCollections: ['SystemLogs', 'PerformanceMetrics', 'UserAnalytics'],
+        expectedFileTypes: ['.log', '.json', '.csv'],
+        features: [
+            'error_tracking',
+            'performance_monitoring',
+            'user_behavior_analysis',
+            'system_health_metrics'
+        ],
+        priority: 'medium',
+        autoSync: true
+    },
+    
+    // Import and Processing Buckets
+    '837326026335_us_import_document': {
+        purpose: 'Document import processing and data extraction',
+        syncStrategy: 'document_processing',
+        targetCollections: ['ImportedDocuments', 'ExtractedData', 'ProcessingResults'],
+        expectedFileTypes: ['.pdf', '.docx', '.xlsx', '.json'],
+        features: [
+            'document_ocr',
+            'data_extraction',
+            'format_conversion',
+            'validation_processing'
+        ],
+        priority: 'medium',
+        autoSync: true
+    },
+    
+    // Firebase and App Engine
+    'good-faith-exteriors.appspot.com': {
+        purpose: 'Firebase/App Engine default storage',
+        syncStrategy: 'app_storage',
+        targetCollections: ['AppStorage', 'UserUploads', 'TempFiles'],
+        expectedFileTypes: ['.json', '.jpg', '.png', '.pdf'],
+        features: [
+            'user_file_uploads',
+            'temporary_storage',
+            'app_configurations',
+            'runtime_data'
+        ],
+        priority: 'low',
+        autoSync: false
+    },
+    
+    'staging.good-faith-exteriors.appspot.com': {
+        purpose: 'Staging environment storage',
+        syncStrategy: 'staging_data',
+        targetCollections: ['StagingData', 'TestResults', 'PreviewContent'],
+        expectedFileTypes: ['.json', '.html', '.js', '.css'],
+        features: [
+            'staging_configurations',
+            'test_data_sets',
+            'preview_content',
+            'development_assets'
+        ],
+        priority: 'low',
+        autoSync: false
+    }
+};
+
+// Main bucket verification function
+export async function verifyBucketConfigurations() {
+    try {
+        console.log('Starting comprehensive bucket verification...');
+        
+        const verificationResults = {
+            startTime: new Date(),
+            bucketsAnalyzed: 0,
+            syncableBuckets: 0,
+            configurationIssues: [],
+            syncRecommendations: [],
+            priorityBuckets: []
+        };
+        
+        // Get API credentials
+        const googleApiKey = await wixSecrets.getSecret('google_workspace_api_key');
+        const apiKey = await wixSecrets.getSecret('GFE_API_KEY');
+        
+        if (!googleApiKey && !apiKey) {
+            throw new Error('No API keys available for bucket verification');
+        }
+        
+        // Verify each bucket configuration
+        for (const [bucketName, config] of Object.entries(BUCKET_CONFIGURATIONS)) {
+            try {
+                console.log(`Verifying bucket: ${bucketName}`);
+                
+                const bucketStatus = await verifyIndividualBucket(bucketName, config, googleApiKey);
+                
+                verificationResults.bucketsAnalyzed++;
+                
+                if (bucketStatus.syncable) {
+                    verificationResults.syncableBuckets++;
+                }
+                
+                if (config.priority === 'high') {
+                    verificationResults.priorityBuckets.push({
+                        name: bucketName,
+                        config: config,
+                        status: bucketStatus
+                    });
+                }
+                
+                if (bucketStatus.issues && bucketStatus.issues.length > 0) {
+                    verificationResults.configurationIssues.push({
+                        bucket: bucketName,
+                        issues: bucketStatus.issues
+                    });
+                }
+                
+                if (bucketStatus.recommendations && bucketStatus.recommendations.length > 0) {
+                    verificationResults.syncRecommendations.push({
+                        bucket: bucketName,
+                        recommendations: bucketStatus.recommendations
+                    });
+                }
+                
+            } catch (error) {
+                console.error(`Error verifying bucket ${bucketName}:`, error);
+                verificationResults.configurationIssues.push({
+                    bucket: bucketName,
+                    issues: [`Verification failed: ${error.message}`]
+                });
+            }
+        }
+        
+        verificationResults.endTime = new Date();
+        verificationResults.duration = verificationResults.endTime - verificationResults.startTime;
+        
+        // Generate sync strategy recommendations
+        verificationResults.syncStrategy = generateSyncStrategy(verificationResults);
+        
+        // Log verification results
+        await logBucketVerification(verificationResults);
+        
+        return {
+            success: true,
+            ...verificationResults
+        };
+        
+    } catch (error) {
+        console.error('Bucket verification failed:', error);
+        return {
+            success: false,
+            error: error.message,
+            timestamp: new Date()
+        };
+    }
+}
+
+// Verify individual bucket
+async function verifyIndividualBucket(bucketName, config, googleApiKey) {
+    try {
+        const bucketStatus = {
+            accessible: false,
+            syncable: false,
+            fileCount: 0,
+            totalSize: 0,
+            fileTypes: [],
+            issues: [],
+            recommendations: [],
+            features: config.features || [],
+            lastModified: null
+        };
+        
+        // Test bucket accessibility
+        try {
+            const bucketInfo = await getBucketInfo(bucketName, googleApiKey);
+            
+            if (bucketInfo) {
+                bucketStatus.accessible = true;
+                bucketStatus.fileCount = bucketInfo.items ? bucketInfo.items.length : 0;
+                
+                if (bucketInfo.items) {
+                    bucketStatus.fileTypes = [...new Set(bucketInfo.items.map(item => 
+                        item.name.substring(item.name.lastIndexOf('.'))
+                    ))];
+                    
+                    bucketStatus.totalSize = bucketInfo.items.reduce((sum, item) => 
+                        sum + parseInt(item.size || 0), 0
+                    );
+                    
+                    // Find most recent modification
+                    bucketStatus.lastModified = bucketInfo.items.reduce((latest, item) => {
+                        const itemTime = new Date(item.timeCreated);
+                        return itemTime > latest ? itemTime : latest;
+                    }, new Date(0));
+                }
+                
+                // Check if bucket is suitable for syncing
+                bucketStatus.syncable = evaluateSyncSuitability(bucketStatus, config);
+                
+                // Generate recommendations
+                bucketStatus.recommendations = generateBucketRecommendations(bucketStatus, config);
+                
+            } else {
+                bucketStatus.issues.push('Bucket not accessible or empty');
+            }
+            
+        } catch (accessError) {
+            bucketStatus.issues.push(`Access error: ${accessError.message}`);
+        }
+        
+        // Verify target collections exist
+        for (const collectionName of config.targetCollections) {
+            try {
+                await wixData.query(collectionName).limit(1).find();
+            } catch (collectionError) {
+                bucketStatus.issues.push(`Target collection '${collectionName}' not accessible`);
+            }
+        }
+        
+        return bucketStatus;
+        
+    } catch (error) {
+        console.error(`Error in individual bucket verification for ${bucketName}:`, error);
+        return {
+            accessible: false,
+            syncable: false,
+            issues: [`Verification error: ${error.message}`]
+        };
+    }
+}
+
+// Get bucket information
+async function getBucketInfo(bucketName, googleApiKey) {
+    try {
+        const url = `https://storage.googleapis.com/storage/v1/b/${bucketName}/o${googleApiKey ? `?key=${googleApiKey}` : ''}`;
+        
+        const response = await fetch(url, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        if (response.ok) {
+            return await response.json();
+        } else if (response.status === 403) {
+            // Bucket exists but access is restricted
+            return { restricted: true, accessible: false };
+        } else {
+            return null;
+        }
+        
+    } catch (error) {
+        console.error(`Error getting bucket info for ${bucketName}:`, error);
+        return null;
+    }
+}
+
+// Evaluate if bucket is suitable for syncing
+function evaluateSyncSuitability(bucketStatus, config) {
+    if (!bucketStatus.accessible) {
+        return false;
+    }
+    
+    // Check if bucket has any files
+    if (bucketStatus.fileCount === 0) {
+        return config.autoSync; // Still syncable if auto-sync is enabled (for future files)
+    }
+    
+    // Check if file types match expected types
+    const hasExpectedFileTypes = config.expectedFileTypes.some(expectedType =>
+        bucketStatus.fileTypes.includes(expectedType)
+    );
+    
+    return hasExpectedFileTypes && config.autoSync;
+}
+
+// Generate bucket-specific recommendations
+function generateBucketRecommendations(bucketStatus, config) {
+    const recommendations = [];
+    
+    if (!bucketStatus.accessible) {
+        recommendations.push('Configure proper access permissions for bucket');
+    }
+    
+    if (bucketStatus.fileCount === 0 && config.priority === 'high') {
+        recommendations.push('High priority bucket is empty - verify data source');
+    }
+    
+    if (bucketStatus.fileTypes.length > 0) {
+        const unexpectedTypes = bucketStatus.fileTypes.filter(type =>
+            !config.expectedFileTypes.includes(type)
+        );
+        
+        if (unexpectedTypes.length > 0) {
+            recommendations.push(`Unexpected file types found: ${unexpectedTypes.join(', ')}`);
+        }
+    }
+    
+    if (config.autoSync && !bucketStatus.syncable) {
+        recommendations.push('Auto-sync enabled but bucket not suitable for syncing');
+    }
+    
+    if (bucketStatus.totalSize > 1000000000) { // 1GB
+        recommendations.push('Large bucket size - consider incremental sync strategy');
+    }
+    
+    return recommendations;
+}
+
+// Generate overall sync strategy
+function generateSyncStrategy(verificationResults) {
+    const strategy = {
+        immediateSyncBuckets: [],
+        scheduledSyncBuckets: [],
+        manualSyncBuckets: [],
+        excludedBuckets: []
+    };
+    
+    // Categorize priority buckets
+    for (const priorityBucket of verificationResults.priorityBuckets) {
+        if (priorityBucket.status.syncable && priorityBucket.config.autoSync) {
+            strategy.immediateSyncBuckets.push(priorityBucket.name);
+        } else if (priorityBucket.status.accessible) {
+            strategy.manualSyncBuckets.push(priorityBucket.name);
+        } else {
+            strategy.excludedBuckets.push(priorityBucket.name);
+        }
+    }
+    
+    // Add medium priority buckets to scheduled sync
+    for (const [bucketName, config] of Object.entries(BUCKET_CONFIGURATIONS)) {
+        if (config.priority === 'medium' && config.autoSync) {
+            strategy.scheduledSyncBuckets.push(bucketName);
+        }
+    }
+    
+    return strategy;
+}
+
+// Log bucket verification results
+async function logBucketVerification(verificationResults) {
+    try {
+        const logEntry = {
+            verificationId: `bucket_verify_${Date.now()}`,
+            verificationDate: verificationResults.startTime,
+            bucketsAnalyzed: verificationResults.bucketsAnalyzed,
+            syncableBuckets: verificationResults.syncableBuckets,
+            priorityBuckets: verificationResults.priorityBuckets.length,
+            configurationIssues: verificationResults.configurationIssues,
+            syncRecommendations: verificationResults.syncRecommendations,
+            syncStrategy: verificationResults.syncStrategy,
+            duration: verificationResults.duration,
+            status: verificationResults.configurationIssues.length > 0 ? 'issues_found' : 'verified',
+            createdAt: new Date()
+        };
+        
+        await wixData.insert('BucketVerificationLogs', logEntry);
+        console.log(`Bucket verification completed: ${verificationResults.bucketsAnalyzed} buckets analyzed`);
+    } catch (error) {
+        console.error('Error logging bucket verification results:', error);
+    }
+}
+
+// Get recommended sync buckets
+export function getRecommendedSyncBuckets() {
+    const recommendations = [];
+    
+    for (const [bucketName, config] of Object.entries(BUCKET_CONFIGURATIONS)) {
+        if (config.priority === 'high' && config.autoSync) {
+            recommendations.push({
+                bucketName,
+                purpose: config.purpose,
+                features: config.features,
+                targetCollections: config.targetCollections,
+                syncStrategy: config.syncStrategy
+            });
+        }
+    }
+    
+    return recommendations;
+}
+
+// Get bucket configuration by name
+export function getBucketConfiguration(bucketName) {
+    return BUCKET_CONFIGURATIONS[bucketName] || null;
+}
+
+// Export all configurations
+export { BUCKET_CONFIGURATIONS };

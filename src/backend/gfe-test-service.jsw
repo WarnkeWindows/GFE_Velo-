@@ -1,0 +1,392 @@
+/**
+ * Good Faith Exteriors - Test Site Backend Service
+ * Server-side functions for secure operations (Development Environment)
+ */
+
+import { fetch } from 'wix-fetch';
+import wixSecretsBackend from 'wix-secrets-backend';
+import wixData from 'wix-data';
+
+// Configuration - Test Site (Development)
+const CONFIG = {
+    siteId: 'test-site-id-placeholder',
+    appId: 'test-app-id-placeholder',
+    environment: 'development',
+    backendUrl: 'https://gfe-api-gateway-aonuaov3.uc.gateway.dev',
+    collections: {
+        leads: 'GFE_Test_Leads',
+        quotes: 'GFE_Test_Quotes',
+        customers: 'GFE_Test_Customers',
+        projects: 'GFE_Test_Projects',
+        products: 'GFE_Test_WindowProducts',
+        appointments: 'GFE_Test_Appointments',
+        feedback: 'GFE_Test_CustomerFeedback',
+        analytics: 'GFE_Test_Analytics',
+        aiEstimations: 'GFE_Test_AIEstimations',
+        oauthTokens: 'GFE_Test_OAuth_Tokens'
+    },
+    oauth: {
+        clientId: 'test-client-id-placeholder',
+        tokenUrl: 'https://www.wixapis.com/oauth2/token',
+        scope: 'wix.stores.read wix.stores.write wix.data.read wix.data.write wix.site.read wix.site.write wix.members.read wix.members.write'
+    }
+};
+
+/**
+ * Get OAuth access token using client credentials (headless) - Test Site
+ */
+async function getOAuthToken() {
+    try {
+        const clientSecret = await wixSecretsBackend.getSecret('WIX_TEST_APP_SECRET');
+        if (!clientSecret) {
+            throw new Error('Test site client secret not found');
+        }
+        
+        const tokenRequest = {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'Accept': 'application/json'
+            },
+            body: new URLSearchParams({
+                grant_type: 'client_credentials',
+                client_id: CONFIG.oauth.clientId,
+                client_secret: clientSecret,
+                scope: CONFIG.oauth.scope
+            })
+        };
+        
+        console.log('[TEST-OAUTH] Requesting token for test site');
+        const response = await fetch(CONFIG.oauth.tokenUrl, tokenRequest);
+        
+        if (!response.ok) {
+            throw new Error(`Test OAuth failed: ${response.status}`);
+        }
+        
+        const tokenData = await response.json();
+        
+        // Cache token
+        const tokenInfo = {
+            access_token: tokenData.access_token,
+            token_type: tokenData.token_type || 'Bearer',
+            expires_in: tokenData.expires_in || 3600,
+            created_at: new Date(),
+            site_id: CONFIG.siteId,
+            environment: 'test'
+        };
+        
+        try {
+            await wixData.insert(CONFIG.collections.oauthTokens, tokenInfo);
+        } catch (error) {
+            console.warn('[TEST-OAUTH] Failed to cache token:', error);
+        }
+        
+        return tokenInfo;
+    } catch (error) {
+        console.error('[TEST-OAUTH] Token error:', error);
+        throw error;
+    }
+}
+
+/**
+ * Get valid OAuth token (cached or new) - Test Site
+ */
+async function getValidOAuthToken() {
+    try {
+        // Check for cached token
+        const tokens = await wixData.query(CONFIG.collections.oauthTokens)
+            .eq('site_id', CONFIG.siteId)
+            .eq('environment', 'test')
+            .descending('created_at')
+            .limit(1)
+            .find();
+        
+        if (tokens.items.length > 0) {
+            const tokenInfo = tokens.items[0];
+            const createdAt = new Date(tokenInfo.created_at);
+            const expiresAt = new Date(createdAt.getTime() + (tokenInfo.expires_in * 1000));
+            
+            // Check if token is still valid (with 5 minute buffer)
+            if (expiresAt.getTime() > Date.now() + (5 * 60 * 1000)) {
+                console.log('[TEST-OAUTH] Using cached token');
+                return tokenInfo;
+            }
+        }
+        
+        // Get new token
+        console.log('[TEST-OAUTH] Getting new token');
+        return await getOAuthToken();
+    } catch (error) {
+        console.error('[TEST-OAUTH] Error getting valid token:', error);
+        return await getOAuthToken();
+    }
+}
+
+/**
+ * Make secure API call to backend - Test Site
+ */
+async function makeBackendCall(endpoint, method = 'GET', data = null) {
+    try {
+        const url = `${CONFIG.backendUrl}${endpoint}`;
+        
+        const headers = {
+            'Content-Type': 'application/json',
+            'X-Wix-Site-Id': CONFIG.siteId,
+            'X-Wix-App-Id': CONFIG.appId,
+            'X-Environment': CONFIG.environment,
+            'X-Test-Mode': 'true'
+        };
+        
+        // Get API key from secrets
+        try {
+            const apiKey = await wixSecretsBackend.getSecret('GFE_TEST_API_KEY');
+            if (apiKey) {
+                headers['X-API-Key'] = apiKey;
+            }
+        } catch (error) {
+            console.warn('[TEST-API] Could not retrieve test API key:', error);
+        }
+        
+        const options = {
+            method: method,
+            headers: headers
+        };
+        
+        if (data && (method === 'POST' || method === 'PUT')) {
+            options.body = JSON.stringify(data);
+        }
+        
+        console.log(`[TEST-API] Making ${method} request to ${url}`);
+        const response = await fetch(url, options);
+        
+        if (!response.ok) {
+            throw new Error(`Test backend call failed: ${response.status}`);
+        }
+        
+        return await response.json();
+    } catch (error) {
+        console.error(`[TEST-API] Backend call error (${endpoint}):`, error);
+        throw error;
+    }
+}
+
+/**
+ * Submit test lead securely
+ */
+export async function submitTestLeadSecure(leadData) {
+    try {
+        // Validate and sanitize data
+        const sanitizedData = {
+            email: leadData.email?.toLowerCase().trim(),
+            firstName: leadData.firstName?.trim(),
+            lastName: leadData.lastName?.trim(),
+            phone: leadData.phone?.replace(/\D/g, ''),
+            address: leadData.address?.trim(),
+            projectType: leadData.projectType,
+            budget: leadData.budget,
+            notes: leadData.notes?.trim(),
+            source: 'test_site',
+            testMode: true
+        };
+        
+        console.log('[TEST-LEAD] Submitting test lead:', sanitizedData.email);
+        
+        // Submit to backend
+        const backendResponse = await makeBackendCall('/api/leads', 'POST', sanitizedData);
+        
+        // Also store in Wix test collection
+        const wixData = await wixData.insert(CONFIG.collections.leads, {
+            ...sanitizedData,
+            createdAt: new Date(),
+            status: 'new',
+            backendId: backendResponse.lead?.id,
+            testData: true
+        });
+        
+        return {
+            success: true,
+            leadId: wixData._id,
+            backendId: backendResponse.lead?.id,
+            testMode: true
+        };
+    } catch (error) {
+        console.error('[TEST-LEAD] Secure lead submission error:', error);
+        throw new Error('Failed to submit test lead securely');
+    }
+}
+
+/**
+ * Get test quote securely
+ */
+export async function getTestQuoteSecure(quoteData, userId) {
+    try {
+        // Add test context
+        const requestData = {
+            ...quoteData,
+            userId: userId,
+            requestedAt: new Date().toISOString(),
+            testMode: true
+        };
+        
+        console.log('[TEST-QUOTE] Generating test quote for user:', userId);
+        
+        // Get quote from backend
+        const backendResponse = await makeBackendCall('/api/quotes', 'POST', requestData);
+        
+        // Store in Wix test collection
+        if (backendResponse.success) {
+            await wixData.insert(CONFIG.collections.quotes, {
+                userId: userId,
+                projectType: quoteData.projectType,
+                totalCost: backendResponse.quote.totalCost,
+                laborCost: backendResponse.quote.laborCost,
+                materialCost: backendResponse.quote.materialCost,
+                status: 'generated',
+                createdAt: new Date(),
+                backendId: backendResponse.quote.id,
+                testData: true
+            });
+        }
+        
+        return {
+            ...backendResponse,
+            testMode: true
+        };
+    } catch (error) {
+        console.error('[TEST-QUOTE] Secure quote error:', error);
+        throw new Error('Failed to generate test quote securely');
+    }
+}
+
+/**
+ * Process test AI estimation securely
+ */
+export async function processTestAIEstimation(windowData) {
+    try {
+        // Validate window data
+        if (!windowData.windows || !Array.isArray(windowData.windows)) {
+            throw new Error('Invalid test window data');
+        }
+        
+        // Add test mode flag
+        const testWindowData = {
+            ...windowData,
+            testMode: true
+        };
+        
+        console.log('[TEST-AI] Processing test AI estimation for', windowData.windows.length, 'windows');
+        
+        // Process through backend
+        const estimation = await makeBackendCall('/api/ai/estimate', 'POST', testWindowData);
+        
+        // Store estimation in Wix test collection
+        if (estimation.success) {
+            await wixData.insert(CONFIG.collections.aiEstimations, {
+                windowCount: windowData.windows.length,
+                projectType: windowData.projectType,
+                totalCost: estimation.estimation.totalCost,
+                laborCost: estimation.estimation.laborCost,
+                materialCost: estimation.estimation.materialCost,
+                createdAt: new Date(),
+                estimationData: estimation.estimation,
+                testData: true
+            });
+        }
+        
+        return {
+            ...estimation,
+            testMode: true
+        };
+    } catch (error) {
+        console.error('[TEST-AI] AI estimation error:', error);
+        throw new Error('Failed to process test AI estimation');
+    }
+}
+
+/**
+ * Log test analytics event
+ */
+export async function logTestAnalyticsEvent(eventName, eventData) {
+    try {
+        const analyticsData = {
+            event: eventName,
+            data: eventData,
+            timestamp: new Date(),
+            environment: 'test',
+            testData: true
+        };
+        
+        console.log('[TEST-ANALYTICS] Logging test event:', eventName);
+        
+        // Store in test analytics collection
+        await wixData.insert(CONFIG.collections.analytics, analyticsData);
+        
+        // Also send to backend for processing
+        try {
+            await makeBackendCall('/api/analytics/track', 'POST', analyticsData);
+        } catch (error) {
+            console.warn('[TEST-ANALYTICS] Failed to send to backend:', error);
+        }
+        
+        return { success: true, testMode: true };
+    } catch (error) {
+        console.error('[TEST-ANALYTICS] Analytics error:', error);
+        throw new Error('Failed to log test analytics event');
+    }
+}
+
+/**
+ * Get test site configuration
+ */
+export function getTestSiteConfig() {
+    return {
+        ...CONFIG,
+        testMode: true,
+        debug: true
+    };
+}
+
+/**
+ * Health check for test site
+ */
+export async function testSiteHealthCheck() {
+    try {
+        console.log('[TEST-HEALTH] Running test site health check');
+        
+        const healthData = {
+            siteId: CONFIG.siteId,
+            environment: CONFIG.environment,
+            timestamp: new Date().toISOString(),
+            status: 'healthy',
+            testMode: true
+        };
+        
+        // Test backend connectivity
+        try {
+            await makeBackendCall('/health', 'GET');
+            healthData.backendConnectivity = 'ok';
+        } catch (error) {
+            healthData.backendConnectivity = 'failed';
+            healthData.backendError = error.message;
+        }
+        
+        // Test OAuth functionality
+        try {
+            await getValidOAuthToken();
+            healthData.oauthStatus = 'ok';
+        } catch (error) {
+            healthData.oauthStatus = 'failed';
+            healthData.oauthError = error.message;
+        }
+        
+        return healthData;
+    } catch (error) {
+        console.error('[TEST-HEALTH] Health check error:', error);
+        return {
+            status: 'unhealthy',
+            error: error.message,
+            testMode: true,
+            timestamp: new Date().toISOString()
+        };
+    }
+}

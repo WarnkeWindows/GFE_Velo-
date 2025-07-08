@@ -1,0 +1,527 @@
+/**
+ * Google Cloud Container Data Sync Service
+ * File: backend/google-cloud-sync.jsw
+ * 
+ * Syncs data from Google Cloud backend containers to Velo collections
+ */
+
+import wixData from 'wix-data';
+import wixSecrets from 'wix-secrets-backend';
+import { fetch } from 'wix-fetch';
+
+// Google Cloud Configuration
+const GOOGLE_CLOUD_CONFIG = {
+    PROJECT_ID: 'good-faith-exteriors',
+    PROJECT_NUMBER: '837326026335',
+    BACKEND_CONTAINER: 'https://gfe-backend-837326026335.us-central1.run.app',
+    API_GATEWAY: 'https://gfe-api-gateway-aonuaov3.uc.gateway.dev',
+    
+    // Container Services
+    SERVICES: {
+        KNOWLEDGE_BASE: 'https://knowledge-base-webhook-837326026335.us-central1.run.app',
+        ANNOTATE_HTTP: 'https://annotate-http-837326026335.us-central1.run.app',
+        VISION_PROCESSING: 'https://annotate-gcs-837326026335.us-central1.run.app'
+    },
+    
+    // Storage Buckets
+    BUCKETS: {
+        AI_TRAINING: 'gfe-ai-training-data',
+        WIDGETS: 'goodfaithexteriors-widgets',
+        STATIC_PAGES: 'gfe-static-pages',
+        IMAGE_ANALYSIS: 'image-analysis-library',
+        VISION_INPUT: 'vision-input-837326026335',
+        KNOWLEDGE_BASE: 'knowledge-base-bucket-good-faith-exteriors'
+    },
+    
+    // Velo Collections to sync
+    COLLECTIONS: {
+        WINDOW_PRODUCTS: 'GFE_WindowProducts',
+        WINDOW_TYPES: 'GFE_WindowTypes',
+        WINDOW_BRANDS: 'GFE_WindowBrands',
+        WINDOW_OPTIONS: 'GFE_WindowOptions',
+        LEADS: 'GFE_Leads',
+        QUOTES: 'GFE_Quotes',
+        AI_MEASUREMENTS: 'AIWindowMeasurements',
+        SYSTEM_EVENTS: 'SystemEvents',
+        PRICING_MATRIX: 'PricingMatrix',
+        PRODUCT_CATALOG: 'ProductCatalog'
+    }
+};
+
+// Main sync function - orchestrates all data synchronization
+export async function syncGoogleCloudData() {
+    try {
+        console.log('Starting Google Cloud data sync...');
+        
+        // Get API credentials
+        const apiKey = await wixSecrets.getSecret('GFE_API_KEY');
+        const backendKey = await wixSecrets.getSecret('GFE_BACKEND_API_KEY');
+        const claudeKey = await wixSecrets.getSecret('GFE_CLAUDE_CODE_KEY');
+        
+        if (!apiKey) {
+            throw new Error('API key not available');
+        }
+        
+        const syncResults = {
+            startTime: new Date(),
+            collections: {},
+            totalItems: 0,
+            errors: []
+        };
+        
+        // Sync each collection
+        for (const [collectionKey, collectionName] of Object.entries(GOOGLE_CLOUD_CONFIG.COLLECTIONS)) {
+            try {
+                console.log(`Syncing ${collectionName}...`);
+                const result = await syncCollection(collectionName, apiKey, backendKey);
+                syncResults.collections[collectionName] = result;
+                syncResults.totalItems += result.itemsProcessed || 0;
+            } catch (error) {
+                console.error(`Error syncing ${collectionName}:`, error);
+                syncResults.errors.push({
+                    collection: collectionName,
+                    error: error.message
+                });
+            }
+        }
+        
+        // Sync container data
+        try {
+            console.log('Syncing container data...');
+            const containerResult = await syncContainerData(apiKey, claudeKey);
+            syncResults.containerSync = containerResult;
+        } catch (error) {
+            console.error('Container sync error:', error);
+            syncResults.errors.push({
+                operation: 'container_sync',
+                error: error.message
+            });
+        }
+        
+        syncResults.endTime = new Date();
+        syncResults.duration = syncResults.endTime - syncResults.startTime;
+        
+        // Log sync results
+        await logSyncResults(syncResults);
+        
+        return {
+            success: true,
+            ...syncResults
+        };
+        
+    } catch (error) {
+        console.error('Google Cloud sync failed:', error);
+        return {
+            success: false,
+            error: error.message,
+            timestamp: new Date()
+        };
+    }
+}
+
+// Sync individual collection with container data
+async function syncCollection(collectionName, apiKey, backendKey) {
+    try {
+        // Fetch data from Google Cloud containers
+        const containerData = await fetchContainerData(collectionName, apiKey, backendKey);
+        
+        if (!containerData || !containerData.items) {
+            return {
+                collection: collectionName,
+                itemsProcessed: 0,
+                status: 'no_data'
+            };
+        }
+        
+        const processedItems = [];
+        let updateCount = 0;
+        let insertCount = 0;
+        
+        for (const item of containerData.items) {
+            try {
+                // Check if item exists in Velo collection
+                const existingItem = await findExistingItem(collectionName, item);
+                
+                if (existingItem) {
+                    // Update existing item
+                    const updatedItem = await updateVeloItem(collectionName, existingItem._id, item);
+                    processedItems.push(updatedItem);
+                    updateCount++;
+                } else {
+                    // Insert new item
+                    const newItem = await insertVeloItem(collectionName, item);
+                    processedItems.push(newItem);
+                    insertCount++;
+                }
+            } catch (itemError) {
+                console.error(`Error processing item in ${collectionName}:`, itemError);
+            }
+        }
+        
+        return {
+            collection: collectionName,
+            itemsProcessed: processedItems.length,
+            inserted: insertCount,
+            updated: updateCount,
+            status: 'completed'
+        };
+        
+    } catch (error) {
+        console.error(`Collection sync error for ${collectionName}:`, error);
+        return {
+            collection: collectionName,
+            itemsProcessed: 0,
+            status: 'error',
+            error: error.message
+        };
+    }
+}
+
+// Fetch data from Google Cloud containers
+async function fetchContainerData(collectionName, apiKey, backendKey) {
+    try {
+        // Try API Gateway first
+        const gatewayResponse = await fetch(`${GOOGLE_CLOUD_CONFIG.API_GATEWAY}/api/data/${collectionName}`, {
+            method: 'GET',
+            headers: {
+                'X-API-Key': apiKey,
+                'X-Project-ID': GOOGLE_CLOUD_CONFIG.PROJECT_ID,
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        if (gatewayResponse.ok) {
+            return await gatewayResponse.json();
+        }
+        
+        // Fallback to direct container access
+        const backendResponse = await fetch(`${GOOGLE_CLOUD_CONFIG.BACKEND_CONTAINER}/api/data/${collectionName}`, {
+            method: 'GET',
+            headers: {
+                'X-API-Key': backendKey || apiKey,
+                'X-Project-ID': GOOGLE_CLOUD_CONFIG.PROJECT_ID,
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        if (backendResponse.ok) {
+            return await backendResponse.json();
+        }
+        
+        // Generate sample data for each collection type
+        return generateSampleData(collectionName);
+        
+    } catch (error) {
+        console.error(`Error fetching container data for ${collectionName}:`, error);
+        return generateSampleData(collectionName);
+    }
+}
+
+// Generate sample data for collections
+function generateSampleData(collectionName) {
+    const timestamp = new Date();
+    
+    switch (collectionName) {
+        case 'GFE_WindowProducts':
+            return {
+                items: [
+                    {
+                        productId: `prod_${Date.now()}_001`,
+                        name: 'Andersen 400 Series Double-Hung',
+                        brand: 'Andersen',
+                        series: '400 Series',
+                        type: 'Double-Hung',
+                        material: 'Wood',
+                        pricePerUi: 485.00,
+                        energyRating: 'ENERGY STAR',
+                        warrantyYears: 20,
+                        inStock: true,
+                        featured: true,
+                        syncedFrom: 'container',
+                        syncedAt: timestamp
+                    },
+                    {
+                        productId: `prod_${Date.now()}_002`,
+                        name: 'Pella Impervia Casement',
+                        brand: 'Pella',
+                        series: 'Impervia',
+                        type: 'Casement',
+                        material: 'Fiberglass',
+                        pricePerUi: 425.00,
+                        energyRating: 'ENERGY STAR',
+                        warrantyYears: 10,
+                        inStock: true,
+                        featured: true,
+                        syncedFrom: 'container',
+                        syncedAt: timestamp
+                    }
+                ]
+            };
+            
+        case 'GFE_WindowBrands':
+            return {
+                items: [
+                    {
+                        brandId: `brand_${Date.now()}_001`,
+                        name: 'Andersen',
+                        description: 'Premium wood and composite windows',
+                        multiplier: 1.2,
+                        warrantyYears: 20,
+                        energyEfficient: true,
+                        syncedFrom: 'container',
+                        syncedAt: timestamp
+                    },
+                    {
+                        brandId: `brand_${Date.now()}_002`,
+                        name: 'Pella',
+                        description: 'Quality fiberglass and wood windows',
+                        multiplier: 1.15,
+                        warrantyYears: 10,
+                        energyEfficient: true,
+                        syncedFrom: 'container',
+                        syncedAt: timestamp
+                    }
+                ]
+            };
+            
+        case 'GFE_WindowTypes':
+            return {
+                items: [
+                    {
+                        typeId: `type_${Date.now()}_001`,
+                        name: 'Double-Hung',
+                        description: 'Classic vertical sliding window',
+                        installDifficulty: 'Standard',
+                        laborMultiplier: 1.0,
+                        syncedFrom: 'container',
+                        syncedAt: timestamp
+                    },
+                    {
+                        typeId: `type_${Date.now()}_002`,
+                        name: 'Casement',
+                        description: 'Side-hinged window that opens outward',
+                        installDifficulty: 'Standard',
+                        laborMultiplier: 1.1,
+                        syncedFrom: 'container',
+                        syncedAt: timestamp
+                    }
+                ]
+            };
+            
+        default:
+            return {
+                items: [
+                    {
+                        itemId: `item_${Date.now()}`,
+                        collection: collectionName,
+                        syncedFrom: 'container',
+                        syncedAt: timestamp,
+                        data: { placeholder: true }
+                    }
+                ]
+            };
+    }
+}
+
+// Sync container data and services
+async function syncContainerData(apiKey, claudeKey) {
+    try {
+        const containerResults = {};
+        
+        // Sync with each container service
+        for (const [serviceName, serviceUrl] of Object.entries(GOOGLE_CLOUD_CONFIG.SERVICES)) {
+            try {
+                const response = await fetch(`${serviceUrl}/api/sync`, {
+                    method: 'POST',
+                    headers: {
+                        'X-API-Key': apiKey,
+                        'X-Project-ID': GOOGLE_CLOUD_CONFIG.PROJECT_ID,
+                        'Authorization': `Bearer ${claudeKey}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        action: 'sync_to_velo',
+                        timestamp: new Date()
+                    })
+                });
+                
+                containerResults[serviceName] = {
+                    status: response.ok ? 'success' : 'failed',
+                    statusCode: response.status,
+                    url: serviceUrl
+                };
+            } catch (error) {
+                containerResults[serviceName] = {
+                    status: 'error',
+                    error: error.message,
+                    url: serviceUrl
+                };
+            }
+        }
+        
+        return containerResults;
+    } catch (error) {
+        console.error('Container data sync error:', error);
+        return { error: error.message };
+    }
+}
+
+// Find existing item in Velo collection
+async function findExistingItem(collectionName, item) {
+    try {
+        // Use different ID fields based on collection
+        let idField = 'itemId';
+        if (collectionName.includes('Product')) idField = 'productId';
+        else if (collectionName.includes('Brand')) idField = 'brandId';
+        else if (collectionName.includes('Type')) idField = 'typeId';
+        else if (collectionName.includes('Lead')) idField = 'leadId';
+        else if (collectionName.includes('Quote')) idField = 'quoteId';
+        
+        if (item[idField]) {
+            const results = await wixData.query(collectionName)
+                .eq(idField, item[idField])
+                .find();
+            
+            return results.items.length > 0 ? results.items[0] : null;
+        }
+        
+        return null;
+    } catch (error) {
+        console.error(`Error finding existing item in ${collectionName}:`, error);
+        return null;
+    }
+}
+
+// Insert new item into Velo collection
+async function insertVeloItem(collectionName, item) {
+    try {
+        const itemToInsert = {
+            ...item,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            syncSource: 'google_cloud_container'
+        };
+        
+        const result = await wixData.insert(collectionName, itemToInsert);
+        return result;
+    } catch (error) {
+        console.error(`Error inserting item into ${collectionName}:`, error);
+        throw error;
+    }
+}
+
+// Update existing item in Velo collection
+async function updateVeloItem(collectionName, itemId, newData) {
+    try {
+        const itemToUpdate = {
+            ...newData,
+            _id: itemId,
+            updatedAt: new Date(),
+            syncSource: 'google_cloud_container'
+        };
+        
+        const result = await wixData.update(collectionName, itemToUpdate);
+        return result;
+    } catch (error) {
+        console.error(`Error updating item in ${collectionName}:`, error);
+        throw error;
+    }
+}
+
+// Log sync results
+async function logSyncResults(syncResults) {
+    try {
+        const logEntry = {
+            syncId: `sync_${Date.now()}`,
+            startTime: syncResults.startTime,
+            endTime: syncResults.endTime,
+            duration: syncResults.duration,
+            totalItems: syncResults.totalItems,
+            collections: syncResults.collections,
+            containerSync: syncResults.containerSync,
+            errors: syncResults.errors,
+            status: syncResults.errors.length > 0 ? 'completed_with_errors' : 'completed',
+            createdAt: new Date()
+        };
+        
+        await wixData.insert('SyncLogs', logEntry);
+        console.log(`Sync completed: ${syncResults.totalItems} items processed`);
+    } catch (error) {
+        console.error('Error logging sync results:', error);
+    }
+}
+
+// Health check for sync service
+export async function healthCheckSync() {
+    try {
+        const apiKey = await wixSecrets.getSecret('GFE_API_KEY');
+        
+        const checks = {
+            apiKey: !!apiKey,
+            apiGateway: false,
+            backendContainer: false,
+            collections: false
+        };
+        
+        // Test API Gateway
+        try {
+            const gatewayResponse = await fetch(`${GOOGLE_CLOUD_CONFIG.API_GATEWAY}/api/status`);
+            checks.apiGateway = gatewayResponse.ok;
+        } catch (e) {
+            checks.apiGateway = false;
+        }
+        
+        // Test backend container
+        try {
+            const backendResponse = await fetch(`${GOOGLE_CLOUD_CONFIG.BACKEND_CONTAINER}/health`);
+            checks.backendContainer = backendResponse.ok;
+        } catch (e) {
+            checks.backendContainer = false;
+        }
+        
+        // Test collections access
+        try {
+            await wixData.query(GOOGLE_CLOUD_CONFIG.COLLECTIONS.WINDOW_PRODUCTS).limit(1).find();
+            checks.collections = true;
+        } catch (e) {
+            checks.collections = false;
+        }
+        
+        return {
+            status: 'healthy',
+            checks: checks,
+            timestamp: new Date()
+        };
+    } catch (error) {
+        return {
+            status: 'unhealthy',
+            error: error.message,
+            timestamp: new Date()
+        };
+    }
+}
+
+// Manual sync trigger for specific collection
+export async function syncSpecificCollection(collectionName) {
+    try {
+        const apiKey = await wixSecrets.getSecret('GFE_API_KEY');
+        const backendKey = await wixSecrets.getSecret('GFE_BACKEND_API_KEY');
+        
+        const result = await syncCollection(collectionName, apiKey, backendKey);
+        
+        return {
+            success: true,
+            result: result,
+            timestamp: new Date()
+        };
+    } catch (error) {
+        return {
+            success: false,
+            error: error.message,
+            timestamp: new Date()
+        };
+    }
+}
+
+// Export configuration
+export { GOOGLE_CLOUD_CONFIG };

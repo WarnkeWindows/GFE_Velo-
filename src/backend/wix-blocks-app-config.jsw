@@ -1,0 +1,497 @@
+/**
+ * Wix Blocks App Configuration
+ * App ID: 477baa33-872c-4b41-8f1f-7d5e28a684f2
+ * App Name: GFE Blocks Integration
+ * 
+ * This configuration file manages the Wix Blocks app integration
+ * with site-specific settings and comprehensive secret management.
+ */
+
+import wixSecrets from 'wix-secrets-backend';
+import wixData from 'wix-data';
+import { fetch } from 'wix-fetch';
+
+// Wix Blocks App Configuration
+const BLOCKS_APP_CONFIG = {
+    APP_ID: '477baa33-872c-4b41-8f1f-7d5e28a684f2',
+    APP_NAME: 'GFE Blocks Integration',
+    VERSION: '2.0.0',
+    
+    // Site-specific configurations
+    SITES: {
+        PRODUCTION: {
+            SITE_ID: '5ec64f41-3f5e-4ba1-b9fc-018d3a8681a4',
+            DOMAIN: 'goodfaithexteriors.com',
+            CLIENT_ID: '11c09244-492f-4332-9983-e768db711388',
+            APP_NAME: 'GFE_VSC',
+            BLOCKS_ENDPOINT: 'https://goodfaithexteriors.com/_api/blocks-app'
+        },
+        TEST: {
+            SITE_ID: '1daf6e42-c7ae-4e56-9a0f-24209afd43c2',
+            DOMAIN: 'goodfaithwindows.com',
+            CLIENT_ID: '1009ff27-79a5-47c7-8a1d-553542c06569',
+            APP_NAME: 'GFW_SVC',
+            BLOCKS_ENDPOINT: 'https://goodfaithwindows.com/_api/blocks-app'
+        }
+    },
+    
+    // Google Cloud Integration
+    GOOGLE_CLOUD: {
+        PROJECT_ID: 'good-faith-exteriors',
+        PROJECT_NUMBER: '837326026335',
+        OAUTH_CLIENT: '837326026335-og5oga2u90sm079ht8450s5j4v4kmio0.apps.googleusercontent.com',
+        API_GATEWAY: 'https://gfe-api-gateway-aonuaov3.uc.gateway.dev',
+        BACKEND_SERVICE: 'https://gfe-backend-837326026335.us-central1.run.app'
+    },
+    
+    // Widget Storage Buckets
+    WIDGET_BUCKETS: {
+        MAIN: 'goodfaithexteriors-widgets',
+        STATIC: 'gfe-static-pages',
+        AI_TRAINING: 'gfe-ai-training-data',
+        VISION: 'vision-input-837326026335',
+        ANALYSIS: 'image-analysis-library',
+        KNOWLEDGE: 'knowledge-base-storage'
+    },
+    
+    // Widget Configurations
+    WIDGETS: {
+        PRICE_CALCULATOR: {
+            ID: 'price-calculator-widget',
+            FILE: 'price-calculator-enhanced.html',
+            IFRAME_URL: 'https://goodfaithexteriors-widgets.storage.googleapis.com/price-calculator-enhanced.html'
+        },
+        WINDOW_VISUALIZER: {
+            ID: 'window-visualizer-widget',
+            FILE: 'window-visualizer-advanced.html',
+            IFRAME_URL: 'https://goodfaithexteriors-widgets.storage.googleapis.com/window-visualizer-advanced.html'
+        },
+        AI_CHAT: {
+            ID: 'ai-chat-widget',
+            FILE: 'ai-chat-agent.html',
+            IFRAME_URL: 'https://goodfaithexteriors-widgets.storage.googleapis.com/ai-chat-agent.html'
+        },
+        LEAD_CAPTURE: {
+            ID: 'lead-capture-widget',
+            FILE: 'smart-lead-capture.html',
+            IFRAME_URL: 'https://goodfaithexteriors-widgets.storage.googleapis.com/smart-lead-capture.html'
+        },
+        QUOTE_GENERATOR: {
+            ID: 'quote-generator-widget',
+            FILE: 'instant-quote-generator.html',
+            IFRAME_URL: 'https://goodfaithexteriors-widgets.storage.googleapis.com/instant-quote-generator.html'
+        },
+        IMAGE_ANALYZER: {
+            ID: 'image-analyzer-widget',
+            FILE: 'image-analyzer-widget.html',
+            IFRAME_URL: 'https://goodfaithexteriors-widgets.storage.googleapis.com/image-analyzer-widget.html'
+        }
+    }
+};
+
+// Initialize Wix Blocks App with all secrets
+export async function initializeBlocksApp() {
+    try {
+        console.log('Initializing Wix Blocks App...');
+        console.log(`App ID: ${BLOCKS_APP_CONFIG.APP_ID}`);
+        console.log(`App Name: ${BLOCKS_APP_CONFIG.APP_NAME}`);
+        console.log(`Version: ${BLOCKS_APP_CONFIG.VERSION}`);
+        
+        // Initialize secrets
+        const secrets = await loadAllSecrets();
+        
+        // Verify Google Cloud connectivity
+        const cloudStatus = await verifyGoogleCloudConnection(secrets);
+        
+        // Check widget availability
+        const widgetStatus = await checkWidgetAvailability();
+        
+        return {
+            success: true,
+            appId: BLOCKS_APP_CONFIG.APP_ID,
+            secrets: Object.keys(secrets).length,
+            cloudStatus: cloudStatus,
+            widgetStatus: widgetStatus,
+            timestamp: new Date()
+        };
+    } catch (error) {
+        console.error('Blocks app initialization failed:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+// Load all required secrets for the blocks app
+async function loadAllSecrets() {
+    const secrets = {};
+    
+    // Core system secrets
+    const secretNames = [
+        'GFE_GIT_TOKEN',
+        'GRID_FLOW_ENGINE', 
+        'GFE_APP_SECRET',
+        'GFE_API_KEY',
+        'GFE_BACKEND_API_KEY',
+        'GFE_CLAUDE_CODE_KEY',
+        'OPENAI_API_KEY',
+        'OPENAI_ASSISTANT_ID',
+        'cloud_vision_client_secret',
+        'cloud_vision_api_client_id',
+        'good-faith-exteriors-oauth-app-id',
+        'GFE-Headless-API',
+        'GFE-Headless-OAuth-Token',
+        'GFE-Headless-OAuth-Client-ID',
+        'google_workspace_api_key',
+        'good-faith-exteriors-admin-api-key',
+        'notebookLM-api',
+        'SENTRY_DSN',
+        'SENTRY_ID',
+        'SENTRY_USER_ID',
+        'CGP_PROJECT_ID',
+        'BACKEND_URL',
+        'COMPANY_EMAIL',
+        'COMPANY_PHONE',
+        'COMPANY_NAME',
+        'vercel_user_ID',
+        'vercel_token',
+        'GFE_TEST_ACCOUNT_ID',
+        'GFE-TEST-META-SITE-ID',
+        'GFE_API_MAX_RETRIES'
+    ];
+    
+    for (const secretName of secretNames) {
+        try {
+            secrets[secretName] = await wixSecrets.getSecret(secretName);
+        } catch (error) {
+            console.warn(`Secret ${secretName} not available:`, error.message);
+            secrets[secretName] = null;
+        }
+    }
+    
+    return secrets;
+}
+
+// Verify Google Cloud connection
+async function verifyGoogleCloudConnection(secrets) {
+    try {
+        const response = await fetch(`${BLOCKS_APP_CONFIG.GOOGLE_CLOUD.API_GATEWAY}/api/status`, {
+            method: 'GET',
+            headers: {
+                'X-API-Key': secrets['GFE_API_KEY'],
+                'X-Project-ID': BLOCKS_APP_CONFIG.GOOGLE_CLOUD.PROJECT_ID
+            }
+        });
+        
+        return {
+            apiGateway: response.ok,
+            status: response.status,
+            timestamp: new Date()
+        };
+    } catch (error) {
+        return {
+            apiGateway: false,
+            error: error.message,
+            timestamp: new Date()
+        };
+    }
+}
+
+// Check widget availability in Google Cloud Storage
+async function checkWidgetAvailability() {
+    const widgetStatus = {};
+    
+    for (const [widgetName, widgetConfig] of Object.entries(BLOCKS_APP_CONFIG.WIDGETS)) {
+        try {
+            const response = await fetch(widgetConfig.IFRAME_URL, {
+                method: 'HEAD'
+            });
+            
+            widgetStatus[widgetName] = {
+                available: response.ok,
+                status: response.status,
+                url: widgetConfig.IFRAME_URL
+            };
+        } catch (error) {
+            widgetStatus[widgetName] = {
+                available: false,
+                error: error.message,
+                url: widgetConfig.IFRAME_URL
+            };
+        }
+    }
+    
+    return widgetStatus;
+}
+
+// Get site-specific configuration
+export function getSiteConfig(siteId) {
+    if (siteId === BLOCKS_APP_CONFIG.SITES.PRODUCTION.SITE_ID) {
+        return BLOCKS_APP_CONFIG.SITES.PRODUCTION;
+    } else if (siteId === BLOCKS_APP_CONFIG.SITES.TEST.SITE_ID) {
+        return BLOCKS_APP_CONFIG.SITES.TEST;
+    }
+    
+    return BLOCKS_APP_CONFIG.SITES.PRODUCTION; // Default to production
+}
+
+// Widget communication handler
+export async function handleWidgetCommunication(widgetId, message, siteId) {
+    try {
+        const siteConfig = getSiteConfig(siteId);
+        const secrets = await loadAllSecrets();
+        
+        console.log(`Widget communication: ${widgetId} on ${siteConfig.DOMAIN}`);
+        
+        const response = await fetch(`${BLOCKS_APP_CONFIG.GOOGLE_CLOUD.API_GATEWAY}/api/widgets/${widgetId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-API-Key': secrets['GFE_API_KEY'],
+                'X-Project-ID': BLOCKS_APP_CONFIG.GOOGLE_CLOUD.PROJECT_ID,
+                'X-Site-ID': siteId,
+                'X-Domain': siteConfig.DOMAIN
+            },
+            body: JSON.stringify({
+                message: message,
+                siteConfig: siteConfig,
+                timestamp: new Date()
+            })
+        });
+        
+        if (!response.ok) {
+            throw new Error(`Widget communication failed: ${response.status}`);
+        }
+        
+        const result = await response.json();
+        
+        // Log the interaction
+        await logWidgetInteraction(widgetId, message, result, siteId);
+        
+        return {
+            success: true,
+            widgetId: widgetId,
+            response: result,
+            siteId: siteId
+        };
+    } catch (error) {
+        console.error('Widget communication error:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+// Enhanced widget rendering with site-specific configuration
+export async function renderWidget(widgetId, siteId, customConfig = {}) {
+    try {
+        const siteConfig = getSiteConfig(siteId);
+        const widget = Object.values(BLOCKS_APP_CONFIG.WIDGETS).find(w => w.ID === widgetId);
+        
+        if (!widget) {
+            throw new Error(`Widget not found: ${widgetId}`);
+        }
+        
+        // Get widget-specific configuration
+        const widgetConfig = {
+            ...widget,
+            siteConfig: siteConfig,
+            apiEndpoint: `${BLOCKS_APP_CONFIG.GOOGLE_CLOUD.API_GATEWAY}/api/widgets/${widgetId}`,
+            customConfig: customConfig
+        };
+        
+        // Return iframe configuration
+        return {
+            success: true,
+            widgetId: widgetId,
+            iframeUrl: widget.IFRAME_URL,
+            config: widgetConfig,
+            siteId: siteId,
+            domain: siteConfig.DOMAIN
+        };
+    } catch (error) {
+        console.error('Widget rendering error:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+// Process widget data with AI integration
+export async function processWidgetData(widgetId, data, siteId) {
+    try {
+        const siteConfig = getSiteConfig(siteId);
+        const secrets = await loadAllSecrets();
+        
+        // Route to appropriate processor based on widget type
+        switch (widgetId) {
+            case 'price-calculator-widget':
+                return await processPriceCalculation(data, siteConfig, secrets);
+            case 'window-visualizer-widget':
+                return await processWindowVisualization(data, siteConfig, secrets);
+            case 'ai-chat-widget':
+                return await processAIChat(data, siteConfig, secrets);
+            case 'lead-capture-widget':
+                return await processLeadCapture(data, siteConfig, secrets);
+            case 'quote-generator-widget':
+                return await processQuoteGeneration(data, siteConfig, secrets);
+            case 'image-analyzer-widget':
+                return await processImageAnalysis(data, siteConfig, secrets);
+            default:
+                throw new Error(`Unknown widget: ${widgetId}`);
+        }
+    } catch (error) {
+        console.error('Widget data processing error:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+// Process price calculation
+async function processPriceCalculation(data, siteConfig, secrets) {
+    const response = await fetch(`${BLOCKS_APP_CONFIG.GOOGLE_CLOUD.API_GATEWAY}/api/calculate-price`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-API-Key': secrets['GFE_API_KEY'],
+            'X-Site-ID': siteConfig.SITE_ID
+        },
+        body: JSON.stringify(data)
+    });
+    
+    return await response.json();
+}
+
+// Process window visualization
+async function processWindowVisualization(data, siteConfig, secrets) {
+    const response = await fetch(`${BLOCKS_APP_CONFIG.GOOGLE_CLOUD.API_GATEWAY}/api/visualize-window`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-API-Key': secrets['GFE_API_KEY'],
+            'X-Site-ID': siteConfig.SITE_ID
+        },
+        body: JSON.stringify(data)
+    });
+    
+    return await response.json();
+}
+
+// Process AI chat
+async function processAIChat(data, siteConfig, secrets) {
+    const response = await fetch(`${BLOCKS_APP_CONFIG.GOOGLE_CLOUD.API_GATEWAY}/api/ai/chat`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-API-Key': secrets['GFE_API_KEY'],
+            'Authorization': `Bearer ${secrets['GFE_CLAUDE_CODE_KEY']}`,
+            'X-Site-ID': siteConfig.SITE_ID
+        },
+        body: JSON.stringify(data)
+    });
+    
+    return await response.json();
+}
+
+// Process lead capture
+async function processLeadCapture(data, siteConfig, secrets) {
+    try {
+        // Save lead to appropriate collection
+        const collectionName = siteConfig.SITE_ID === BLOCKS_APP_CONFIG.SITES.PRODUCTION.SITE_ID 
+            ? 'GFE_Leads' : 'GFW_Leads';
+        
+        const lead = {
+            ...data,
+            siteId: siteConfig.SITE_ID,
+            domain: siteConfig.DOMAIN,
+            source: 'blocks_widget',
+            status: 'new',
+            createdAt: new Date()
+        };
+        
+        const result = await wixData.insert(collectionName, lead);
+        
+        return {
+            success: true,
+            leadId: result._id,
+            lead: lead
+        };
+    } catch (error) {
+        return { success: false, error: error.message };
+    }
+}
+
+// Process quote generation
+async function processQuoteGeneration(data, siteConfig, secrets) {
+    const response = await fetch(`${BLOCKS_APP_CONFIG.GOOGLE_CLOUD.API_GATEWAY}/api/generate-quote`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-API-Key': secrets['GFE_API_KEY'],
+            'Authorization': `Bearer ${secrets['GFE_CLAUDE_CODE_KEY']}`,
+            'X-Site-ID': siteConfig.SITE_ID
+        },
+        body: JSON.stringify({
+            ...data,
+            siteConfig: siteConfig
+        })
+    });
+    
+    return await response.json();
+}
+
+// Process image analysis
+async function processImageAnalysis(data, siteConfig, secrets) {
+    const response = await fetch(`${BLOCKS_APP_CONFIG.GOOGLE_CLOUD.API_GATEWAY}/api/analyze-image`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-API-Key': secrets['GFE_API_KEY'],
+            'X-Site-ID': siteConfig.SITE_ID
+        },
+        body: JSON.stringify(data)
+    });
+    
+    return await response.json();
+}
+
+// Log widget interactions
+async function logWidgetInteraction(widgetId, message, response, siteId) {
+    try {
+        const logEntry = {
+            widgetId: widgetId,
+            siteId: siteId,
+            message: message,
+            response: response,
+            timestamp: new Date(),
+            logId: `widget_${Date.now()}`
+        };
+        
+        await wixData.insert('WidgetInteractionLogs', logEntry);
+    } catch (error) {
+        console.error('Failed to log widget interaction:', error);
+    }
+}
+
+// Health check for blocks app
+export async function healthCheckBlocksApp() {
+    try {
+        const secrets = await loadAllSecrets();
+        const cloudStatus = await verifyGoogleCloudConnection(secrets);
+        const widgetStatus = await checkWidgetAvailability();
+        
+        const healthCheck = {
+            status: 'healthy',
+            appId: BLOCKS_APP_CONFIG.APP_ID,
+            secretsLoaded: Object.keys(secrets).length,
+            cloudConnection: cloudStatus.apiGateway,
+            widgetsAvailable: Object.values(widgetStatus).filter(w => w.available).length,
+            totalWidgets: Object.keys(BLOCKS_APP_CONFIG.WIDGETS).length,
+            timestamp: new Date()
+        };
+        
+        return healthCheck;
+    } catch (error) {
+        return {
+            status: 'unhealthy',
+            error: error.message,
+            timestamp: new Date()
+        };
+    }
+}
+
+// Export configuration
+export { BLOCKS_APP_CONFIG };

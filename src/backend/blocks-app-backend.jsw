@@ -1,0 +1,408 @@
+/**
+ * Good Faith Exteriors - Blocks App Backend Service
+ * Server-side functions for Wix Blocks integration
+ * Blocks App ID: d1a7b19e-3898-4267-8117-4a5614d95209
+ * Meta Site ID: ee160c0b-3e21-4b3c-addf-1a8da3723970
+ * App Def ID: 477baa33-872c-4b41-8f1f-7d5e28a684f2
+ */
+
+import { fetch } from 'wix-fetch';
+import wixSecretsBackend from 'wix-secrets-backend';
+import wixData from 'wix-data';
+
+// Configuration - Blocks App
+const CONFIG = {
+    blocksAppId: 'd1a7b19e-3898-4267-8117-4a5614d95209',
+    metaSiteId: 'ee160c0b-3e21-4b3c-addf-1a8da3723970',
+    appDefId: '477baa33-872c-4b41-8f1f-7d5e28a684f2',
+    environment: 'blocks',
+    backendUrl: 'https://gfe-api-gateway-aonuaov3.uc.gateway.dev',
+    collections: {
+        leads: 'GFE_Blocks_Leads',
+        products: 'GFE_Blocks_WindowProducts',
+        analytics: 'GFE_Blocks_Analytics',
+        widgets: 'GFE_Blocks_Widgets',
+        configurations: 'GFE_Blocks_Configurations'
+    },
+    oauth: {
+        clientId: 'blocks-client-id-placeholder',
+        tokenUrl: 'https://www.wixapis.com/oauth2/token',
+        scope: 'wix.data.read wix.data.write wix.site.read wix.site.write'
+    }
+};
+
+/**
+ * Get OAuth access token for Blocks app
+ */
+async function getBlocksOAuthToken() {
+    try {
+        const clientSecret = await wixSecretsBackend.getSecret('WIX_BLOCKS_APP_SECRET');
+        if (!clientSecret) {
+            throw new Error('Blocks app client secret not found');
+        }
+        
+        const tokenRequest = {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'Accept': 'application/json'
+            },
+            body: new URLSearchParams({
+                grant_type: 'client_credentials',
+                client_id: CONFIG.oauth.clientId,
+                client_secret: clientSecret,
+                scope: CONFIG.oauth.scope
+            })
+        };
+        
+        console.log('[BLOCKS-OAUTH] Requesting token for Blocks app');
+        const response = await fetch(CONFIG.oauth.tokenUrl, tokenRequest);
+        
+        if (!response.ok) {
+            throw new Error(`Blocks OAuth failed: ${response.status}`);
+        }
+        
+        const tokenData = await response.json();
+        
+        return {
+            access_token: tokenData.access_token,
+            token_type: tokenData.token_type || 'Bearer',
+            expires_in: tokenData.expires_in || 3600,
+            created_at: new Date(),
+            app_id: CONFIG.blocksAppId,
+            environment: 'blocks'
+        };
+    } catch (error) {
+        console.error('[BLOCKS-OAUTH] Token error:', error);
+        throw error;
+    }
+}
+
+/**
+ * Make secure API call for Blocks app
+ */
+async function makeBlocksApiCall(endpoint, method = 'GET', data = null) {
+    try {
+        const url = `${CONFIG.backendUrl}${endpoint}`;
+        
+        const headers = {
+            'Content-Type': 'application/json',
+            'X-Wix-Blocks-App-Id': CONFIG.blocksAppId,
+            'X-Wix-Meta-Site-Id': CONFIG.metaSiteId,
+            'X-Wix-App-Def-Id': CONFIG.appDefId,
+            'X-Environment': CONFIG.environment,
+            'X-Blocks-Mode': 'true'
+        };
+        
+        // Get API key from secrets
+        try {
+            const apiKey = await wixSecretsBackend.getSecret('GFE_BLOCKS_API_KEY');
+            if (apiKey) {
+                headers['X-API-Key'] = apiKey;
+            }
+        } catch (error) {
+            console.warn('[BLOCKS-API] Could not retrieve Blocks API key:', error);
+        }
+        
+        const options = {
+            method: method,
+            headers: headers
+        };
+        
+        if (data && (method === 'POST' || method === 'PUT')) {
+            options.body = JSON.stringify(data);
+        }
+        
+        console.log(`[BLOCKS-API] Making ${method} request to ${url}`);
+        const response = await fetch(url, options);
+        
+        if (!response.ok) {
+            throw new Error(`Blocks API call failed: ${response.status}`);
+        }
+        
+        return await response.json();
+    } catch (error) {
+        console.error(`[BLOCKS-API] Backend call error (${endpoint}):`, error);
+        throw error;
+    }
+}
+
+/**
+ * Initialize Blocks widget configuration
+ */
+export async function initializeBlocksWidget(widgetConfig) {
+    try {
+        const configData = {
+            widgetId: widgetConfig.widgetId,
+            widgetType: widgetConfig.type,
+            configuration: widgetConfig.config,
+            blocksAppId: CONFIG.blocksAppId,
+            metaSiteId: CONFIG.metaSiteId,
+            createdAt: new Date(),
+            environment: 'blocks'
+        };
+        
+        console.log('[BLOCKS-INIT] Initializing widget:', widgetConfig.type);
+        
+        // Store configuration in Wix collection
+        await wixData.insert(CONFIG.collections.configurations, configData);
+        
+        // Send configuration to backend
+        const backendResponse = await makeBlocksApiCall('/api/blocks/widget/init', 'POST', configData);
+        
+        return {
+            success: true,
+            widgetId: widgetConfig.widgetId,
+            configuration: backendResponse.configuration,
+            blocksMode: true
+        };
+    } catch (error) {
+        console.error('[BLOCKS-INIT] Widget initialization error:', error);
+        throw new Error('Failed to initialize Blocks widget');
+    }
+}
+
+/**
+ * Handle Blocks widget data submission
+ */
+export async function submitBlocksWidgetData(widgetId, formData) {
+    try {
+        const submissionData = {
+            widgetId: widgetId,
+            formData: formData,
+            blocksAppId: CONFIG.blocksAppId,
+            metaSiteId: CONFIG.metaSiteId,
+            submittedAt: new Date(),
+            environment: 'blocks',
+            source: 'wix_blocks'
+        };
+        
+        console.log('[BLOCKS-SUBMIT] Processing widget data submission for:', widgetId);
+        
+        // Process based on widget type
+        if (formData.type === 'lead') {
+            // Store lead in Blocks collection
+            await wixData.insert(CONFIG.collections.leads, {
+                ...formData.data,
+                widgetId: widgetId,
+                createdAt: new Date(),
+                source: 'wix_blocks',
+                blocksAppId: CONFIG.blocksAppId
+            });
+        }
+        
+        // Send to backend for processing
+        const backendResponse = await makeBlocksApiCall('/api/blocks/widget/submit', 'POST', submissionData);
+        
+        return {
+            success: true,
+            submissionId: backendResponse.submissionId,
+            widgetId: widgetId,
+            blocksMode: true
+        };
+    } catch (error) {
+        console.error('[BLOCKS-SUBMIT] Widget data submission error:', error);
+        throw new Error('Failed to submit Blocks widget data');
+    }
+}
+
+/**
+ * Get Blocks widget configuration
+ */
+export async function getBlocksWidgetConfig(widgetId) {
+    try {
+        console.log('[BLOCKS-CONFIG] Retrieving configuration for widget:', widgetId);
+        
+        const configurations = await wixData.query(CONFIG.collections.configurations)
+            .eq('widgetId', widgetId)
+            .eq('blocksAppId', CONFIG.blocksAppId)
+            .find();
+        
+        if (configurations.items.length === 0) {
+            throw new Error('Widget configuration not found');
+        }
+        
+        const config = configurations.items[0];
+        
+        return {
+            success: true,
+            configuration: config.configuration,
+            widgetId: widgetId,
+            widgetType: config.widgetType,
+            blocksMode: true
+        };
+    } catch (error) {
+        console.error('[BLOCKS-CONFIG] Configuration retrieval error:', error);
+        throw new Error('Failed to retrieve Blocks widget configuration');
+    }
+}
+
+/**
+ * Log Blocks analytics event
+ */
+export async function logBlocksAnalyticsEvent(eventName, eventData) {
+    try {
+        const analyticsData = {
+            event: eventName,
+            data: eventData,
+            blocksAppId: CONFIG.blocksAppId,
+            metaSiteId: CONFIG.metaSiteId,
+            timestamp: new Date(),
+            environment: 'blocks'
+        };
+        
+        console.log('[BLOCKS-ANALYTICS] Logging event:', eventName);
+        
+        // Store in Blocks analytics collection
+        await wixData.insert(CONFIG.collections.analytics, analyticsData);
+        
+        // Send to backend for processing
+        try {
+            await makeBlocksApiCall('/api/analytics/blocks/track', 'POST', analyticsData);
+        } catch (error) {
+            console.warn('[BLOCKS-ANALYTICS] Failed to send to backend:', error);
+        }
+        
+        return { 
+            success: true, 
+            blocksMode: true,
+            eventId: analyticsData.timestamp.getTime()
+        };
+    } catch (error) {
+        console.error('[BLOCKS-ANALYTICS] Analytics error:', error);
+        throw new Error('Failed to log Blocks analytics event');
+    }
+}
+
+/**
+ * Get Blocks app products
+ */
+export async function getBlocksProducts(filters = {}) {
+    try {
+        console.log('[BLOCKS-PRODUCTS] Retrieving products with filters:', filters);
+        
+        // Get products from backend API
+        const productsResponse = await makeBlocksApiCall('/api/products/blocks', 'POST', {
+            filters: filters,
+            blocksMode: true,
+            appId: CONFIG.blocksAppId
+        });
+        
+        if (productsResponse.success) {
+            // Cache in Blocks collection for performance
+            try {
+                await wixData.insert(CONFIG.collections.products, {
+                    productsData: productsResponse.products,
+                    filters: filters,
+                    cachedAt: new Date(),
+                    blocksAppId: CONFIG.blocksAppId
+                });
+            } catch (error) {
+                console.warn('[BLOCKS-PRODUCTS] Failed to cache products:', error);
+            }
+        }
+        
+        return {
+            success: true,
+            products: productsResponse.products || [],
+            blocksMode: true,
+            totalCount: productsResponse.totalCount || 0
+        };
+    } catch (error) {
+        console.error('[BLOCKS-PRODUCTS] Products retrieval error:', error);
+        throw new Error('Failed to retrieve Blocks products');
+    }
+}
+
+/**
+ * Handle Blocks AI estimation
+ */
+export async function processBlocksAIEstimation(estimationData) {
+    try {
+        const blocksEstimationData = {
+            ...estimationData,
+            blocksAppId: CONFIG.blocksAppId,
+            metaSiteId: CONFIG.metaSiteId,
+            environment: 'blocks',
+            processedAt: new Date()
+        };
+        
+        console.log('[BLOCKS-AI] Processing AI estimation for Blocks app');
+        
+        // Process through backend AI service
+        const estimation = await makeBlocksApiCall('/api/ai/blocks/estimate', 'POST', blocksEstimationData);
+        
+        return {
+            ...estimation,
+            blocksMode: true,
+            appId: CONFIG.blocksAppId
+        };
+    } catch (error) {
+        console.error('[BLOCKS-AI] AI estimation error:', error);
+        throw new Error('Failed to process Blocks AI estimation');
+    }
+}
+
+/**
+ * Blocks app health check
+ */
+export async function blocksAppHealthCheck() {
+    try {
+        console.log('[BLOCKS-HEALTH] Running Blocks app health check');
+        
+        const healthData = {
+            blocksAppId: CONFIG.blocksAppId,
+            metaSiteId: CONFIG.metaSiteId,
+            appDefId: CONFIG.appDefId,
+            environment: CONFIG.environment,
+            timestamp: new Date().toISOString(),
+            status: 'healthy',
+            blocksMode: true
+        };
+        
+        // Test backend connectivity
+        try {
+            await makeBlocksApiCall('/health', 'GET');
+            healthData.backendConnectivity = 'ok';
+        } catch (error) {
+            healthData.backendConnectivity = 'failed';
+            healthData.backendError = error.message;
+        }
+        
+        // Test OAuth functionality
+        try {
+            await getBlocksOAuthToken();
+            healthData.oauthStatus = 'ok';
+        } catch (error) {
+            healthData.oauthStatus = 'failed';
+            healthData.oauthError = error.message;
+        }
+        
+        return healthData;
+    } catch (error) {
+        console.error('[BLOCKS-HEALTH] Health check error:', error);
+        return {
+            status: 'unhealthy',
+            error: error.message,
+            blocksMode: true,
+            timestamp: new Date().toISOString()
+        };
+    }
+}
+
+/**
+ * Get Blocks app configuration
+ */
+export function getBlocksAppConfig() {
+    return {
+        ...CONFIG,
+        blocksMode: true,
+        apiGateway: CONFIG.backendUrl,
+        supportedWidgets: [
+            'ai-window-estimator',
+            'product-browser',
+            'lead-form',
+            'ai-chat-agent'
+        ]
+    };
+}

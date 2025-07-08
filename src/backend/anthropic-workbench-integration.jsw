@@ -1,0 +1,610 @@
+/**
+ * Anthropic Workbench Tools Integration for GFE Velo
+ * File: backend/anthropic-workbench-integration.jsw
+ * 
+ * Integration with Claude AI, Computer Use, and Anthropic Workbench tools
+ */
+
+import wixSecrets from 'wix-secrets-backend';
+import { fetch } from 'wix-fetch';
+import wixData from 'wix-data';
+
+// Anthropic Configuration
+const ANTHROPIC_CONFIG = {
+    API_BASE_URL: 'https://api.anthropic.com/v1',
+    MODEL_SONNET: 'claude-3-5-sonnet-20241022',
+    MODEL_HAIKU: 'claude-3-5-haiku-20241022',
+    MODEL_OPUS: 'claude-3-opus-20240229',
+    MAX_TOKENS: 8192,
+    TEMPERATURE: 0.3
+};
+
+// Enhanced AI Tools Configuration
+const AI_TOOLS_CONFIG = {
+    COMPUTER_USE: {
+        name: "computer",
+        type: "computer_20241022",
+        display_width: 1024,
+        display_height: 768
+    },
+    TEXT_EDITOR: {
+        name: "str_replace_editor",
+        type: "str_replace_editor"
+    },
+    BASH_TOOL: {
+        name: "bash",
+        type: "bash"
+    }
+};
+
+// Get Anthropic API key from Wix secrets
+async function getAnthropicAPIKey() {
+    try {
+        return await wixSecrets.getSecret('GFE_CLAUDE_CODE_KEY');
+    } catch (error) {
+        console.error('Failed to get Anthropic API key:', error);
+        throw new Error('Anthropic API key not available');
+    }
+}
+
+// Enhanced Claude AI chat with tool use
+export async function processClaudeChat(message, options = {}) {
+    try {
+        const apiKey = await getAnthropicAPIKey();
+        
+        const requestBody = {
+            model: options.model || ANTHROPIC_CONFIG.MODEL_SONNET,
+            max_tokens: options.maxTokens || ANTHROPIC_CONFIG.MAX_TOKENS,
+            temperature: options.temperature || ANTHROPIC_CONFIG.TEMPERATURE,
+            messages: [
+                {
+                    role: "user",
+                    content: message
+                }
+            ],
+            tools: [
+                AI_TOOLS_CONFIG.COMPUTER_USE,
+                AI_TOOLS_CONFIG.TEXT_EDITOR,
+                AI_TOOLS_CONFIG.BASH_TOOL
+            ],
+            system: `You are Claude, an AI assistant integrated with Good Faith Exteriors' window replacement system. 
+            You have access to:
+            - Computer use capabilities for automated tasks
+            - Text editing for document creation and modification
+            - Bash commands for system operations
+            - Window product databases and pricing information
+            - Customer relationship management tools
+            
+            Always prioritize accuracy in window measurements, pricing calculations, and customer service.
+            Use appropriate tools when needed to complete tasks efficiently.`
+        };
+        
+        const response = await fetch(`${ANTHROPIC_CONFIG.API_BASE_URL}/messages`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${apiKey}`,
+                'anthropic-version': '2023-06-01',
+                'anthropic-beta': 'computer-use-2024-10-22'
+            },
+            body: JSON.stringify(requestBody)
+        });
+        
+        if (!response.ok) {
+            throw new Error(`Anthropic API error: ${response.status}`);
+        }
+        
+        const result = await response.json();
+        
+        // Log the interaction
+        await logAIInteraction('claude_chat', {
+            message: message,
+            response: result,
+            model: requestBody.model,
+            toolsUsed: result.content?.filter(c => c.type === 'tool_use') || []
+        });
+        
+        return {
+            success: true,
+            response: result.content,
+            usage: result.usage,
+            toolsUsed: result.content?.filter(c => c.type === 'tool_use') || []
+        };
+    } catch (error) {
+        console.error('Claude chat error:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+// Window analysis with Claude Computer Use
+export async function analyzeWindowWithClaudeVision(imageData, analysisType = 'measurement') {
+    try {
+        const apiKey = await getAnthropicAPIKey();
+        
+        let systemPrompt = '';
+        switch (analysisType) {
+            case 'measurement':
+                systemPrompt = `You are a window measurement specialist. Analyze the provided image to:
+                1. Identify window types and count
+                2. Estimate dimensions if possible
+                3. Note any visible damage or wear
+                4. Identify window materials (vinyl, wood, aluminum)
+                5. Suggest appropriate replacement options`;
+                break;
+            case 'damage_assessment':
+                systemPrompt = `You are a window damage assessment expert. Analyze the image for:
+                1. Visible damage (cracks, warping, seal failure)
+                2. Energy efficiency issues
+                3. Security concerns
+                4. Urgency level for replacement`;
+                break;
+            case 'energy_audit':
+                systemPrompt = `You are an energy efficiency auditor. Analyze windows for:
+                1. Single vs double/triple pane glass
+                2. Frame condition and thermal bridging
+                3. Weather stripping condition
+                4. Potential energy savings with replacement`;
+                break;
+        }
+        
+        const requestBody = {
+            model: ANTHROPIC_CONFIG.MODEL_SONNET,
+            max_tokens: 4096,
+            messages: [
+                {
+                    role: "user",
+                    content: [
+                        {
+                            type: "image",
+                            source: {
+                                type: "base64",
+                                media_type: imageData.mimeType || "image/jpeg",
+                                data: imageData.base64
+                            }
+                        },
+                        {
+                            type: "text",
+                            text: `Please analyze this window image for ${analysisType}. Provide detailed observations and recommendations.`
+                        }
+                    ]
+                }
+            ],
+            tools: [AI_TOOLS_CONFIG.COMPUTER_USE],
+            system: systemPrompt
+        };
+        
+        const response = await fetch(`${ANTHROPIC_CONFIG.API_BASE_URL}/messages`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${apiKey}`,
+                'anthropic-version': '2023-06-01',
+                'anthropic-beta': 'computer-use-2024-10-22'
+            },
+            body: JSON.stringify(requestBody)
+        });
+        
+        if (!response.ok) {
+            throw new Error(`Anthropic API error: ${response.status}`);
+        }
+        
+        const result = await response.json();
+        
+        // Store analysis result
+        const analysisRecord = {
+            analysisId: `claude_analysis_${Date.now()}`,
+            analysisType: analysisType,
+            imageMetadata: {
+                size: imageData.size,
+                mimeType: imageData.mimeType
+            },
+            claudeResponse: result.content,
+            confidence: extractConfidenceFromResponse(result.content),
+            recommendations: extractRecommendationsFromResponse(result.content),
+            createdAt: new Date()
+        };
+        
+        await wixData.insert('AIWindowMeasurements', analysisRecord);
+        
+        return {
+            success: true,
+            analysisId: analysisRecord.analysisId,
+            analysis: result.content,
+            recommendations: analysisRecord.recommendations,
+            confidence: analysisRecord.confidence
+        };
+    } catch (error) {
+        console.error('Claude vision analysis error:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+// Quote generation with Claude assistance
+export async function generateQuoteWithClaude(quoteRequest) {
+    try {
+        const apiKey = await getAnthropicAPIKey();
+        
+        // Get product data and pricing
+        const products = await wixData.query('GFE_WindowProducts').find();
+        const pricing = await wixData.query('GFE_WindowBrands').find();
+        
+        const systemPrompt = `You are a window replacement quote specialist for Good Faith Exteriors. 
+        Use the provided product catalog and pricing data to generate accurate quotes.
+        
+        Available Products: ${JSON.stringify(products.items.slice(0, 10))}
+        Pricing Data: ${JSON.stringify(pricing.items)}
+        
+        Calculate quotes based on:
+        - Window dimensions and type
+        - Material preferences
+        - Installation complexity
+        - Energy efficiency upgrades
+        - Local market factors
+        
+        Provide detailed breakdowns with material costs, labor, and total pricing.`;
+        
+        const requestBody = {
+            model: ANTHROPIC_CONFIG.MODEL_SONNET,
+            max_tokens: 4096,
+            messages: [
+                {
+                    role: "user",
+                    content: `Generate a detailed quote for this window replacement project: ${JSON.stringify(quoteRequest)}`
+                }
+            ],
+            tools: [AI_TOOLS_CONFIG.TEXT_EDITOR],
+            system: systemPrompt
+        };
+        
+        const response = await fetch(`${ANTHROPIC_CONFIG.API_BASE_URL}/messages`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${apiKey}`,
+                'anthropic-version': '2023-06-01'
+            },
+            body: JSON.stringify(requestBody)
+        });
+        
+        if (!response.ok) {
+            throw new Error(`Anthropic API error: ${response.status}`);
+        }
+        
+        const result = await response.json();
+        
+        // Parse quote data from Claude's response
+        const quoteData = parseQuoteFromClaudeResponse(result.content);
+        
+        // Save quote to database
+        const quote = {
+            quoteId: `claude_quote_${Date.now()}`,
+            customerId: quoteRequest.customerId,
+            customerInfo: quoteRequest.customerInfo,
+            projectDetails: quoteRequest,
+            claudeAnalysis: result.content,
+            quoteBreakdown: quoteData,
+            totalCost: quoteData.totalCost || 0,
+            validUntil: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+            createdAt: new Date(),
+            status: 'draft',
+            source: 'claude_ai'
+        };
+        
+        await wixData.insert('GFE_Quotes', quote);
+        
+        return {
+            success: true,
+            quoteId: quote.quoteId,
+            quote: quoteData,
+            analysis: result.content
+        };
+    } catch (error) {
+        console.error('Claude quote generation error:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+// Automated document generation with Claude
+export async function generateDocumentWithClaude(documentType, data) {
+    try {
+        const apiKey = await getAnthropicAPIKey();
+        
+        let systemPrompt = '';
+        let documentTemplate = '';
+        
+        switch (documentType) {
+            case 'proposal':
+                systemPrompt = 'Generate a professional window replacement proposal document';
+                documentTemplate = await getDocumentTemplate('proposal');
+                break;
+            case 'contract':
+                systemPrompt = 'Generate a detailed installation contract';
+                documentTemplate = await getDocumentTemplate('contract');
+                break;
+            case 'work_order':
+                systemPrompt = 'Generate a work order for installation team';
+                documentTemplate = await getDocumentTemplate('work_order');
+                break;
+            case 'invoice':
+                systemPrompt = 'Generate an invoice for completed work';
+                documentTemplate = await getDocumentTemplate('invoice');
+                break;
+        }
+        
+        const requestBody = {
+            model: ANTHROPIC_CONFIG.MODEL_SONNET,
+            max_tokens: 4096,
+            messages: [
+                {
+                    role: "user",
+                    content: `Using this template: ${documentTemplate}\n\nGenerate a ${documentType} with this data: ${JSON.stringify(data)}`
+                }
+            ],
+            tools: [AI_TOOLS_CONFIG.TEXT_EDITOR],
+            system: systemPrompt
+        };
+        
+        const response = await fetch(`${ANTHROPIC_CONFIG.API_BASE_URL}/messages`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${apiKey}`,
+                'anthropic-version': '2023-06-01'
+            },
+            body: JSON.stringify(requestBody)
+        });
+        
+        if (!response.ok) {
+            throw new Error(`Anthropic API error: ${response.status}`);
+        }
+        
+        const result = await response.json();
+        
+        // Store generated document
+        const document = {
+            documentId: `claude_doc_${Date.now()}`,
+            documentType: documentType,
+            content: result.content,
+            sourceData: data,
+            createdAt: new Date(),
+            status: 'draft'
+        };
+        
+        await wixData.insert('GeneratedDocuments', document);
+        
+        return {
+            success: true,
+            documentId: document.documentId,
+            content: result.content,
+            documentType: documentType
+        };
+    } catch (error) {
+        console.error('Claude document generation error:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+// Customer service automation with Claude
+export async function processCustomerInquiry(inquiry) {
+    try {
+        const apiKey = await getAnthropicAPIKey();
+        
+        // Get customer history if available
+        let customerContext = '';
+        if (inquiry.customerId) {
+            const customerData = await getCustomerContext(inquiry.customerId);
+            customerContext = JSON.stringify(customerData);
+        }
+        
+        const systemPrompt = `You are a customer service representative for Good Faith Exteriors, 
+        a window and door replacement company. Provide helpful, accurate responses to customer inquiries.
+        
+        Company Information:
+        - Specializes in residential window and door replacement
+        - Serves Minneapolis/St. Paul metro area
+        - Licensed, bonded, and insured
+        - Free estimates available
+        - Energy-efficient windows from top manufacturers
+        
+        Customer Context: ${customerContext}
+        
+        Always be professional, helpful, and accurate. If you need to schedule appointments or access 
+        specific account information, use appropriate tools or direct customers to contact our office.`;
+        
+        const requestBody = {
+            model: ANTHROPIC_CONFIG.MODEL_SONNET,
+            max_tokens: 2048,
+            messages: [
+                {
+                    role: "user",
+                    content: inquiry.message
+                }
+            ],
+            tools: [AI_TOOLS_CONFIG.COMPUTER_USE],
+            system: systemPrompt
+        };
+        
+        const response = await fetch(`${ANTHROPIC_CONFIG.API_BASE_URL}/messages`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${apiKey}`,
+                'anthropic-version': '2023-06-01',
+                'anthropic-beta': 'computer-use-2024-10-22'
+            },
+            body: JSON.stringify(requestBody)
+        });
+        
+        if (!response.ok) {
+            throw new Error(`Anthropic API error: ${response.status}`);
+        }
+        
+        const result = await response.json();
+        
+        // Log customer interaction
+        await logCustomerInteraction(inquiry.customerId, {
+            inquiry: inquiry.message,
+            response: result.content,
+            timestamp: new Date(),
+            handled_by: 'claude_ai'
+        });
+        
+        return {
+            success: true,
+            response: result.content,
+            requiresHumanFollowup: checkForHumanFollowup(result.content)
+        };
+    } catch (error) {
+        console.error('Claude customer service error:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+// Helper Functions
+
+async function getCustomerContext(customerId) {
+    try {
+        const leads = await wixData.query('GFE_Leads').eq('customerId', customerId).find();
+        const quotes = await wixData.query('GFE_Quotes').eq('customerId', customerId).find();
+        
+        return {
+            leads: leads.items,
+            quotes: quotes.items,
+            totalInteractions: leads.items.length + quotes.items.length
+        };
+    } catch (error) {
+        console.error('Error getting customer context:', error);
+        return {};
+    }
+}
+
+async function getDocumentTemplate(templateType) {
+    try {
+        const template = await wixData.query('DocumentTemplates')
+            .eq('templateType', templateType)
+            .find();
+        
+        return template.items[0]?.content || `Default ${templateType} template`;
+    } catch (error) {
+        console.error('Error getting document template:', error);
+        return `Default ${templateType} template`;
+    }
+}
+
+function extractConfidenceFromResponse(content) {
+    // Parse confidence level from Claude's response
+    const confidencePattern = /confidence[:\s]*(\d{1,3})%?/i;
+    const match = JSON.stringify(content).match(confidencePattern);
+    return match ? parseInt(match[1]) : 75; // Default confidence
+}
+
+function extractRecommendationsFromResponse(content) {
+    // Extract recommendations from Claude's response
+    try {
+        const textContent = content.find(c => c.type === 'text')?.text || '';
+        const recommendations = textContent.split('\n')
+            .filter(line => line.includes('recommend') || line.includes('suggest'))
+            .slice(0, 5); // Top 5 recommendations
+        
+        return recommendations;
+    } catch (error) {
+        return ['Professional measurement recommended'];
+    }
+}
+
+function parseQuoteFromClaudeResponse(content) {
+    // Parse structured quote data from Claude's response
+    try {
+        const textContent = content.find(c => c.type === 'text')?.text || '';
+        
+        // Extract numerical values
+        const totalMatch = textContent.match(/total[:\s]*\$?([\d,]+)/i);
+        const laborMatch = textContent.match(/labor[:\s]*\$?([\d,]+)/i);
+        const materialMatch = textContent.match(/material[:\s]*\$?([\d,]+)/i);
+        
+        return {
+            totalCost: totalMatch ? parseFloat(totalMatch[1].replace(',', '')) : 0,
+            laborCost: laborMatch ? parseFloat(laborMatch[1].replace(',', '')) : 0,
+            materialCost: materialMatch ? parseFloat(materialMatch[1].replace(',', '')) : 0,
+            breakdown: textContent
+        };
+    } catch (error) {
+        return { totalCost: 0, laborCost: 0, materialCost: 0, breakdown: 'Error parsing quote' };
+    }
+}
+
+function checkForHumanFollowup(content) {
+    // Check if human follow-up is needed
+    const followupIndicators = [
+        'schedule', 'appointment', 'contract', 'legal', 'pricing', 'discount',
+        'urgent', 'complaint', 'refund', 'warranty'
+    ];
+    
+    const textContent = JSON.stringify(content).toLowerCase();
+    return followupIndicators.some(indicator => textContent.includes(indicator));
+}
+
+async function logAIInteraction(interactionType, data) {
+    try {
+        const logEntry = {
+            interactionId: `ai_${Date.now()}`,
+            interactionType: interactionType,
+            model: data.model || 'claude-3-5-sonnet',
+            tokenUsage: data.usage || {},
+            toolsUsed: data.toolsUsed || [],
+            createdAt: new Date()
+        };
+        
+        await wixData.insert('AIInteractionLogs', logEntry);
+    } catch (error) {
+        console.error('Failed to log AI interaction:', error);
+    }
+}
+
+async function logCustomerInteraction(customerId, interactionData) {
+    try {
+        const logEntry = {
+            customerId: customerId,
+            ...interactionData,
+            logId: `customer_${Date.now()}`
+        };
+        
+        await wixData.insert('CustomerInteractionLogs', logEntry);
+    } catch (error) {
+        console.error('Failed to log customer interaction:', error);
+    }
+}
+
+// Health check for Anthropic integration
+export async function healthCheckAnthropicIntegration() {
+    try {
+        const apiKey = await getAnthropicAPIKey();
+        
+        // Test simple API call
+        const response = await fetch(`${ANTHROPIC_CONFIG.API_BASE_URL}/messages`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${apiKey}`,
+                'anthropic-version': '2023-06-01'
+            },
+            body: JSON.stringify({
+                model: ANTHROPIC_CONFIG.MODEL_HAIKU,
+                max_tokens: 50,
+                messages: [{ role: "user", content: "Health check test" }]
+            })
+        });
+        
+        return {
+            status: response.ok ? 'healthy' : 'unhealthy',
+            anthropicAPI: response.ok,
+            timestamp: new Date()
+        };
+    } catch (error) {
+        return {
+            status: 'unhealthy',
+            error: error.message,
+            timestamp: new Date()
+        };
+    }
+}

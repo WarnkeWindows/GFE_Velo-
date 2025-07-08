@@ -1,0 +1,213 @@
+----- CLI crash report at 2025-07-08T01:53:18.312Z
+Error Trace
+Error: Command failed with exit code 128: git symbolic-ref refs/remotes/origin/HEAD
+fatal: ref refs/remotes/origin/HEAD is not a symbolic ref
+    at makeError (/home/gfe/.nvm/versions/node/v22.17.0/lib/node_modules/node_modules/execa/lib/error.js:60:11)
+    at handlePromise (/home/gfe/.nvm/versions/node/v22.17.0/lib/node_modules/node_modules/execa/index.js:124:26)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async getDefaultBranch (/home/gfe/.nvm/versions/node/v22.17.0/lib/node_modules/@wix/cli-site-old/src/git/index.ts:10:24)
+    at async publish (/home/gfe/.nvm/versions/node/v22.17.0/lib/node_modules/@wix/cli-site-old/src/publish/publish.ts:52:29)
+    at async runCommand (/home/gfe/.nvm/versions/node/v22.17.0/lib/node_modules/@wix/cli-site-old/src/commands/run-command.ts:39:5)
+    at async _Command.<anonymous> (/home/gfe/.nvm/versions/node/v22.17.0/lib/node_modules/@wix/cli-site-old/src/commands/publish.ts:28:7)
+    at async _Command.parseAsync (/home/gfe/.nvm/versions/node/v22.17.0/lib/node_modules/node_modules/commander/lib/command.js:1104:5)
+    at async <anonymous> (/home/gfe/.nvm/versions/node/v22.17.0/lib/node_modules/@wix/cli/src/index.tsx:80:25)
+Error Info
+{}
+----- CLI crash report at 2025-07-08T01:55:16.666Z
+Error Trace
+Error: Command failed with exit code 128: git symbolic-ref refs/remotes/origin/HEAD
+fatal: ref refs/remotes/origin/HEAD is not a symbolic ref
+    at makeError (/home/gfe/.nvm/versions/node/v22.17.0/lib/node_modules/node_modules/execa/lib/error.js:60:11)
+    at handlePromise (/home/gfe/.nvm/versions/node/v22.17.0/lib/node_modules/node_modules/execa/index.js:124:26)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async getDefaultBranch (/home/gfe/.nvm/versions/node/v22.17.0/lib/node_modules/@wix/cli-site-old/src/git/index.ts:10:24)
+    at async publish (/home/gfe/.nvm/versions/node/v22.17.0/lib/node_modules/@wix/cli-site-old/src/publish/publish.ts:52:29)
+    at async runCommand (/home/gfe/.nvm/versions/node/v22.17.0/lib/node_modules/@wix/cli-site-old/src/commands/run-command.ts:39:5)
+    at async _Command.<anonymous> (/home/gfe/.nvm/versions/node/v22.17.0/lib/node_modules/@wix/cli-site-old/src/commands/publish.ts:28:7)
+    at async _Command.parseAsync (/home/gfe/.nvm/versions/node/v22.17.0/lib/node_modules/node_modules/commander/lib/command.js:1104:5)
+    at async <anonymous> (/home/gfe/.nvm/versions/node/v22.17.0/lib/node_modules/@wix/cli/src/index.tsx:80:25)
+Error Info
+{}
+----- CLI crash report at 2025-07-08T01:55:43.881Z
+Error Trace
+Error: Command failed with exit code 128: git symbolic-ref refs/remotes/origin/HEAD
+fatal: ref refs/remotes/origin/HEAD is not a symbolic ref
+    at makeError (/home/gfe/.nvm/versions/node/v22.17.0/lib/node_modules/node_modules/execa/lib/error.js:60:11)
+    at handlePromise (/home/gfe/.nvm/versions/node/v22.17.0/lib/node_modules/node_modules/execa/index.js:124:26)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async getDefaultBranch (/home/gfe/.nvm/versions/node/v22.17.0/lib/node_modules/@wix/cli-site-old/src/git/index.ts:10:24)
+    at async publish (/home/gfe/.nvm/versions/node/v22.17.0/lib/node_modules/@wix/cli-site-old/src/publish/publish.ts:52:29)
+    at async runCommand (/home/gfe/.nvm/versions/node/v22.17.0/lib/node_modules/@wix/cli-site-old/src/commands/run-command.ts:39:5)
+    at async _Command.<anonymous> (/home/gfe/.nvm/versions/node/v22.17.0/lib/node_modules/@wix/cli-site-old/src/commands/publish.ts:28:7)
+    at async _Command.parseAsync (/home/gfe/.nvm/versions/node/v22.17.0/lib/node_modules/node_modules/commander/lib/command.js:1104:5)
+    at async <anonymous> (/home/gfe/.nvm/versions/node/v22.17.0/lib/node_modules/@wix/cli/src/index.tsx:80:25)
+Error Info
+{}
+----- CLI crash report at 2025-07-08T01:56:15.809Z
+Error Trace
+Error: Command failed with exit code 128: git symbolic-ref refs/remotes/origin/HEAD
+fatal: ref refs/remotes/origin/HEAD is not a symbolic ref
+    at makeError (/home/gfe/.nvm/versions/node/v22.17.0/lib/node_modules/node_modules/execa/lib/error.js:60:11)
+    at handlePromise (/home/gfe/.nvm/versions/node/v22.17.0/lib/node_modules/node_modules/execa/index.js:124:26)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async getDefaultBranch (/home/gfe/.nvm/versions/node/v22.17.0/lib/node_modules/@wix/cli-site-old/src/git/index.ts:10:24)
+    at async publish (/home/gfe/.nvm/versions/node/v22.17.0/lib/node_modules/@wix/cli-site-old/src/publish/publish.ts:52:29)
+    at async runCommand (/home/gfe/.nvm/versions/node/v22.17.0/lib/node_modules/@wix/cli-site-old/src/commands/run-command.ts:39:5)
+    at async _Command.<anonymous> (/home/gfe/.nvm/versions/node/v22.17.0/lib/node_modules/@wix/cli-site-old/src/commands/publish.ts:28:7)
+    at async _Command.parseAsync (/home/gfe/.nvm/versions/node/v22.17.0/lib/node_modules/node_modules/commander/lib/command.js:1104:5)
+    at async <anonymous> (/home/gfe/.nvm/versions/node/v22.17.0/lib/node_modules/@wix/cli/src/index.tsx:80:25)
+Error Info
+{}
+----- CLI crash report at 2025-07-08T02:08:36.785Z
+Error Trace
+Error: Command failed with exit code 128: git symbolic-ref refs/remotes/origin/HEAD
+fatal: ref refs/remotes/origin/HEAD is not a symbolic ref
+    at makeError (/home/gfe/.nvm/versions/node/v22.17.0/lib/node_modules/node_modules/execa/lib/error.js:60:11)
+    at handlePromise (/home/gfe/.nvm/versions/node/v22.17.0/lib/node_modules/node_modules/execa/index.js:124:26)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async getDefaultBranch (/home/gfe/.nvm/versions/node/v22.17.0/lib/node_modules/@wix/cli-site-old/src/git/index.ts:10:24)
+    at async publish (/home/gfe/.nvm/versions/node/v22.17.0/lib/node_modules/@wix/cli-site-old/src/publish/publish.ts:52:29)
+    at async runCommand (/home/gfe/.nvm/versions/node/v22.17.0/lib/node_modules/@wix/cli-site-old/src/commands/run-command.ts:39:5)
+    at async _Command.<anonymous> (/home/gfe/.nvm/versions/node/v22.17.0/lib/node_modules/@wix/cli-site-old/src/commands/publish.ts:28:7)
+    at async _Command.parseAsync (/home/gfe/.nvm/versions/node/v22.17.0/lib/node_modules/node_modules/commander/lib/command.js:1104:5)
+    at async <anonymous> (/home/gfe/.nvm/versions/node/v22.17.0/lib/node_modules/@wix/cli/src/index.tsx:80:25)
+Error Info
+{}
+----- CLI crash report at 2025-07-08T02:09:16.765Z
+Error Trace
+Error: Command failed with exit code 128: git symbolic-ref refs/remotes/origin/HEAD
+fatal: ref refs/remotes/origin/HEAD is not a symbolic ref
+    at makeError (/home/gfe/.nvm/versions/node/v22.17.0/lib/node_modules/node_modules/execa/lib/error.js:60:11)
+    at handlePromise (/home/gfe/.nvm/versions/node/v22.17.0/lib/node_modules/node_modules/execa/index.js:124:26)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async getDefaultBranch (/home/gfe/.nvm/versions/node/v22.17.0/lib/node_modules/@wix/cli-site-old/src/git/index.ts:10:24)
+    at async publish (/home/gfe/.nvm/versions/node/v22.17.0/lib/node_modules/@wix/cli-site-old/src/publish/publish.ts:52:29)
+    at async runCommand (/home/gfe/.nvm/versions/node/v22.17.0/lib/node_modules/@wix/cli-site-old/src/commands/run-command.ts:39:5)
+    at async _Command.<anonymous> (/home/gfe/.nvm/versions/node/v22.17.0/lib/node_modules/@wix/cli-site-old/src/commands/publish.ts:28:7)
+    at async _Command.parseAsync (/home/gfe/.nvm/versions/node/v22.17.0/lib/node_modules/node_modules/commander/lib/command.js:1104:5)
+    at async <anonymous> (/home/gfe/.nvm/versions/node/v22.17.0/lib/node_modules/@wix/cli/src/index.tsx:80:25)
+Error Info
+{}
+----- CLI crash report at 2025-07-08T21:34:23.218Z
+Error Trace
+Error: Command failed with exit code 128: git symbolic-ref refs/remotes/origin/HEAD
+fatal: ref refs/remotes/origin/HEAD is not a symbolic ref
+    at makeError (C:\Users\warnk\AppData\Roaming\npm\node_modules\node_modules\execa\lib\error.js:60:11)
+    at handlePromise (C:\Users\warnk\AppData\Roaming\npm\node_modules\node_modules\execa\index.js:124:26)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async getDefaultBranch (C:\Users\warnk\AppData\Roaming\npm\node_modules\@wix\cli-site-old\src\git\index.ts:10:24)
+    at async publish (C:\Users\warnk\AppData\Roaming\npm\node_modules\@wix\cli-site-old\src\publish\publish.ts:52:29)
+    at async runCommand (C:\Users\warnk\AppData\Roaming\npm\node_modules\@wix\cli-site-old\src\commands\run-command.ts:39:5)
+    at async _Command.<anonymous> (C:\Users\warnk\AppData\Roaming\npm\node_modules\@wix\cli-site-old\src\commands\publish.ts:28:7)
+    at async _Command.parseAsync (C:\Users\warnk\AppData\Roaming\npm\node_modules\node_modules\commander\lib\command.js:1104:5)
+    at async <anonymous> (C:\Users\warnk\AppData\Roaming\npm\node_modules\@wix\cli\src\index.tsx:80:25)
+Error Info
+{}
+----- CLI crash report at 2025-07-08T21:34:54.012Z
+Error Trace
+Error: Command failed with exit code 128: git symbolic-ref refs/remotes/origin/HEAD
+fatal: ref refs/remotes/origin/HEAD is not a symbolic ref
+    at makeError (C:\Users\warnk\AppData\Roaming\npm\node_modules\node_modules\execa\lib\error.js:60:11)
+    at handlePromise (C:\Users\warnk\AppData\Roaming\npm\node_modules\node_modules\execa\index.js:124:26)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async getDefaultBranch (C:\Users\warnk\AppData\Roaming\npm\node_modules\@wix\cli-site-old\src\git\index.ts:10:24)
+    at async publish (C:\Users\warnk\AppData\Roaming\npm\node_modules\@wix\cli-site-old\src\publish\publish.ts:52:29)
+    at async runCommand (C:\Users\warnk\AppData\Roaming\npm\node_modules\@wix\cli-site-old\src\commands\run-command.ts:39:5)
+    at async _Command.<anonymous> (C:\Users\warnk\AppData\Roaming\npm\node_modules\@wix\cli-site-old\src\commands\publish.ts:28:7)
+    at async _Command.parseAsync (C:\Users\warnk\AppData\Roaming\npm\node_modules\node_modules\commander\lib\command.js:1104:5)
+    at async <anonymous> (C:\Users\warnk\AppData\Roaming\npm\node_modules\@wix\cli\src\index.tsx:80:25)
+Error Info
+{}
+----- CLI crash report at 2025-07-08T21:39:43.704Z
+Error Trace
+Error: Command failed with exit code 128: git symbolic-ref refs/remotes/origin/HEAD
+fatal: ref refs/remotes/origin/HEAD is not a symbolic ref
+    at makeError (C:\Users\warnk\AppData\Roaming\npm\node_modules\node_modules\execa\lib\error.js:60:11)
+    at handlePromise (C:\Users\warnk\AppData\Roaming\npm\node_modules\node_modules\execa\index.js:124:26)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async getDefaultBranch (C:\Users\warnk\AppData\Roaming\npm\node_modules\@wix\cli-site-old\src\git\index.ts:10:24)
+    at async publish (C:\Users\warnk\AppData\Roaming\npm\node_modules\@wix\cli-site-old\src\publish\publish.ts:52:29)
+    at async runCommand (C:\Users\warnk\AppData\Roaming\npm\node_modules\@wix\cli-site-old\src\commands\run-command.ts:39:5)
+    at async _Command.<anonymous> (C:\Users\warnk\AppData\Roaming\npm\node_modules\@wix\cli-site-old\src\commands\publish.ts:28:7)
+    at async _Command.parseAsync (C:\Users\warnk\AppData\Roaming\npm\node_modules\node_modules\commander\lib\command.js:1104:5)
+    at async <anonymous> (C:\Users\warnk\AppData\Roaming\npm\node_modules\@wix\cli\src\index.tsx:80:25)
+Error Info
+{}
+----- CLI crash report at 2025-07-08T21:40:16.483Z
+Error Trace
+FailedToDeploySite: FailedToDeploySite
+    at deployGridApp (C:\Users\warnk\AppData\Roaming\npm\node_modules\@wix\cli-site-old\src\gridapp\deployApp.ts:88:11)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async publish (C:\Users\warnk\AppData\Roaming\npm\node_modules\@wix\cli-site-old\src\publish\publish.ts:104:15)
+    at async runCommand (C:\Users\warnk\AppData\Roaming\npm\node_modules\@wix\cli-site-old\src\commands\run-command.ts:39:5)
+    at async _Command.<anonymous> (C:\Users\warnk\AppData\Roaming\npm\node_modules\@wix\cli-site-old\src\commands\publish.ts:28:7)
+    at async _Command.parseAsync (C:\Users\warnk\AppData\Roaming\npm\node_modules\node_modules\commander\lib\command.js:1104:5)
+    at async <anonymous> (C:\Users\warnk\AppData\Roaming\npm\node_modules\@wix\cli\src\index.tsx:80:25)
+caused by: Error: Request failed with status code 428
+    at createHttpError (C:\Users\warnk\AppData\Roaming\npm\node_modules\node_modules\@wix\http-client\src\error.ts:54:10)
+    at HttpClientNode.handleRequestError (C:\Users\warnk\AppData\Roaming\npm\node_modules\node_modules\@wix\http-client\src\http-client.ts:268:26)
+    at HttpClientNode.request (C:\Users\warnk\AppData\Roaming\npm\node_modules\node_modules\@wix\http-client\src\http-client.ts:105:12)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async RetryOperation._fn (C:\Users\warnk\AppData\Roaming\npm\node_modules\node_modules\p-retry\index.js:55:20)
+Error Info
+{}
+Request Info
+{
+  "request": {
+    "baseURL": "https://code.wix.com",
+    "url": "/_api/wix-code-lifecycle-service/v1/apps/deploy",
+    "method": "post",
+    "headers": {
+      "Accept": "application/json, text/plain, */*",
+      "Content-Type": "application/json",
+      "X-XSRF-TOKEN": "nocheck",
+      "Cookie": "XSRF-TOKEN=nocheck",
+      "User-Agent": "wix-cli",
+      "authorization": "OauthNG.JWS.eyJraWQiOiJZSEJzdUpwSCIsImFsZyI6IkhTMjU2In0.eyJkYXRhIjoie1wiaW5zdGFuY2VcIjp7XCJpbnN0YW5jZUlkXCI6XCI2Zjk1Y2VjOC0zZTk4LTQ4YjktYjRlNS0xZmI5MmZjZDk5NzNcIixcImFwcERlZklkXCI6XCI2Zjk1Y2VjOC0zZTk4LTQ4YjktYjRlNS0xZmI5MmZjZDk5NzNcIixcInNpZ25EYXRlXCI6XCIyMDI1LTA3LTA4VDIxOjM0OjIyLjU1OFpcIixcInVpZFwiOlwiMTBkNTJkZDgtZWM5Yi00NDUzLWFkYmMtNjI5M2I5OWFmNDk5XCIsXCJwZXJtaXNzaW9uc1wiOlwiXCIsXCJkZW1vTW9kZVwiOmZhbHNlLFwic2l0ZU93bmVySWRcIjpcIjEwZDUyZGQ4LWVjOWItNDQ1My1hZGJjLTYyOTNiOTlhZjQ5OVwiLFwibWV0YVNpdGVJZFwiOlwiNWVjNjRmNDEtM2Y1ZS00YmExLWI5ZmMtMDE4ZDNhODY4MWE0XCIsXCJleHBpcmF0aW9uRGF0ZVwiOlwiMjAyNS0wNy0wOVQwMTozNDoyMi41NThaXCIsXCJsb2dpbkFjY291bnRJZFwiOlwiMTBkNTJkZDgtZWM5Yi00NDUzLWFkYmMtNjI5M2I5OWFmNDk5XCIsXCJhb3JcIjp0cnVlfX0iLCJpYXQiOjE3NTIwMTA0NjIsImV4cCI6MTc1MjAyNDg2Mn0.0If-KrYKlMcibKumFVtj9UCh35rgkbGfTYk6YSiIl-Y",
+      "Content-Length": 97
+    },
+    "data": "{\"deploymentOperation\":\"RC\",\"appType\":\"VELO_ISOLATED\",\"rcDeploymentParams\":{\"rcLabel\":\"WIX_CLI\"}}"
+  },
+  "response": {
+    "message": "Request failed with status code 428",
+    "status": 428,
+    "headers": {
+      "date": "Tue, 08 Jul 2025 21:40:15 GMT",
+      "content-type": "application/json",
+      "content-length": "148",
+      "connection": "keep-alive",
+      "x-wix-responded-by": "wix.velo.apps.v1.app:DeployApp:com.wixpress.wixcode.wix-code-lifecycle-service",
+      "x-seen-by": "m0j2EEknGIVUW/liY8BLLoZMUaBvcs1P4XnyZD/Do+KWWveFEnegpnkLxzZh8fhS,rXUceJIlvIg2Ftogbhjv0NpRC7VfRY5JMZpil53ggwFEQfi00LSS7LJu7sdkoLsDNmqiIz0VkNq7TSrGb4rzrQ==,r6yY0ta7bIKrqK70x072lQZCSjOvubI8DQovV/CT24Q=",
+      "x-wix-request-id": "1752010813.94986678048894531226",
+      "set-cookie": [
+        "XSRF-TOKEN=1752010815|SS7hAwMahcge; Path=/; Domain=.wix.com; Secure; SameSite=None"
+      ],
+      "server": "Pepyaka",
+      "x-content-type-options": "nosniff"
+    },
+    "data": {
+      "message": "Revision is missing in config",
+      "details": {
+        "applicationError": {
+          "code": "UNKNOWN_REVISION",
+          "description": "Revision is missing in config"
+        }
+      }
+    }
+  }
+}
+----- CLI crash report at 2025-07-08T21:58:32.735Z
+Error Trace
+Error: Command failed with exit code 128: git symbolic-ref refs/remotes/origin/HEAD
+fatal: ref refs/remotes/origin/HEAD is not a symbolic ref
+    at makeError (C:\Users\warnk\AppData\Roaming\npm\node_modules\node_modules\execa\lib\error.js:60:11)
+    at handlePromise (C:\Users\warnk\AppData\Roaming\npm\node_modules\node_modules\execa\index.js:124:26)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async getDefaultBranch (C:\Users\warnk\AppData\Roaming\npm\node_modules\@wix\cli-site-old\src\git\index.ts:10:24)
+    at async publish (C:\Users\warnk\AppData\Roaming\npm\node_modules\@wix\cli-site-old\src\publish\publish.ts:52:29)
+    at async runCommand (C:\Users\warnk\AppData\Roaming\npm\node_modules\@wix\cli-site-old\src\commands\run-command.ts:39:5)
+    at async _Command.<anonymous> (C:\Users\warnk\AppData\Roaming\npm\node_modules\@wix\cli-site-old\src\commands\publish.ts:28:7)
+    at async _Command.parseAsync (C:\Users\warnk\AppData\Roaming\npm\node_modules\node_modules\commander\lib\command.js:1104:5)
+    at async <anonymous> (C:\Users\warnk\AppData\Roaming\npm\node_modules\@wix\cli\src\index.tsx:80:25)
+Error Info
+{}

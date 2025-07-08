@@ -1,0 +1,24 @@
+{
+  "name": "gfe-main-site-production",
+  "version": "2.0.0",
+  "description": "Good Faith Exteriors Main Production Site - Wix Velo Integration",
+  "scripts": {
+    "dev": "wix dev",
+    "build": "wix build",
+    "deploy": "wix publish",
+    "test": "echo \"No tests specified\" && exit 0"
+  },
+  "dependencies": {
+    "@wix/sdk": "^1.12.0",
+    "@wix/data": "^1.0.0",
+    "@wix/stores": "^1.0.0",
+    "@wix/members": "^1.0.0",
+    "@wix/crm": "^1.0.0"
+  },
+  "devDependencies": {
+    "@wix/cli": "^1.0.0"
+  },
+  "keywords": ["wix", "velo", "good-faith-exteriors", "windows", "doors"],
+  "author": "Good Faith Exteriors",
+  "license": "MIT"
+}

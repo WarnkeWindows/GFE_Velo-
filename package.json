@@ -1,13 +1,30 @@
 {
-  "devDependencies": {
-    "@wix/cli": "^1.0.0",
-    "@wix/eslint-plugin-cli": "^1.0.0",
-    "eslint": "^8.25.0",
-    "react": "16.14.0"
-  },
+  "name": "gfe-velo-",
+  "version": "2.0.0",
+  "description": "Wix Velo Backend for goodfaithexteriors.com",
+  "main": "backend/production-service.jsw",
   "scripts": {
-    "postinstall": "wix sync-types",
     "dev": "wix dev",
-    "lint": "eslint ."
+    "build": "wix build",
+    "publish": "wix publish",
+    "deploy": "wix code push --site-id 5ec64f41-3f5e-4ba1-b9fc-018d3a8681a4",
+    "preview": "wix preview"
+  },
+  "keywords": [
+    "wix",
+    "velo",
+    "production",
+    "good-faith-exteriors"
+  ],
+  "author": "Good Faith Exteriors",
+  "license": "MIT",
+  "dependencies": {
+    "@wix/cli": "latest",
+    "@wix/sdk": "latest",
+    "@wix/data": "latest"
+  },
+  "wix": {
+    "metaSiteId": "5ec64f41-3f5e-4ba1-b9fc-018d3a8681a4",
+    "projectType": "backend"
   }
 }

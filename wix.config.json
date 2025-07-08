@@ -1,4 +1,20 @@
 {
-  "siteId": "5ec64f41-3f5e-4ba1-b9fc-018d3a8681a4",
-  "uiVersion": "1212"
+  "metaSiteId": "5ec64f41-3f5e-4ba1-b9fc-018d3a8681a4",
+  "projectType": "backend",
+  "siteUrl": "https://goodfaithexteriors.com",
+  "oauthClientId": "11c09244-492f-4332-9983-e768db711388",
+  "appName": "GFE_SVC",
+  "appId": "11c09244-492f-4332-9983-e768db711388",
+  "workspace": "gridFlowEngine",
+  "accountId": "10d52dd8-ec9b-4453-adbc-6293b99af499",
+  "adminApi": "GFE-Headless-API",
+  "sentry": {
+    "dsn": "https://daf10ccaaf2dcea42bc8ab5340f36027@o4509594994868224.ingest.us.sentry.io/4509595014463489",
+    "organizationId": "4509594994868224",
+    "environment": "production"
+  },
+  "blocksApp": {
+    "appId": "477baa33-872c-4b41-8f1f-7d5e28a684f2",
+    "namespace": "@goodfaithexteriors/grid-flow-engine"
+  }
 }

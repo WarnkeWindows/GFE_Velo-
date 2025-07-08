@@ -1,0 +1,503 @@
+/**
+ * Enhanced Velo Integration Service with Full Secrets Management
+ * File: backend/enhanced-velo-integration.jsw
+ * 
+ * Comprehensive integration with Google Cloud containers and iframe elements
+ */
+
+import wixData from 'wix-data';
+import wixSecrets from 'wix-secrets-backend';
+import { fetch } from 'wix-fetch';
+import wixLocation from 'wix-location';
+
+// Enhanced GFE Configuration with all secrets
+const ENHANCED_GFE_CONFIG = {
+    // Core API Configuration
+    API_GATEWAY_URL: 'https://gfe-api-gateway-aonuaov3.uc.gateway.dev',
+    BACKEND_URL: 'https://gfe-backend-837326026335.us-central1.run.app',
+    PROJECT_ID: 'good-faith-exteriors',
+    PROJECT_NUMBER: '837326026335',
+    
+    // Google Cloud Storage Buckets
+    STORAGE_BUCKETS: {
+        AI_TRAINING: 'gfe-ai-training-data',
+        WIDGETS: 'goodfaithexteriors-widgets',
+        STATIC_PAGES: 'gfe-static-pages',
+        IMAGE_ANALYSIS: 'image-analysis-library',
+        VISION_INPUT: 'vision-input-837326026335'
+    },
+    
+    // Cloud Run Services
+    CLOUD_SERVICES: {
+        KNOWLEDGE_BASE: 'https://knowledge-base-webhook-837326026335.us-central1.run.app',
+        ANNOTATE_HTTP: 'https://annotate-http-837326026335.us-central1.run.app',
+        VISION_PROCESSING: 'https://annotate-gcs-837326026335.us-central1.run.app'
+    },
+    
+    // Wix Collections
+    COLLECTIONS: {
+        WINDOW_PRODUCTS: 'GFE_WindowProducts',
+        WINDOW_TYPES: 'GFE_WindowTypes',
+        WINDOW_BRANDS: 'GFE_WindowBrands',
+        WINDOW_OPTIONS: 'GFE_WindowOptions',
+        LEADS: 'GFE_Leads',
+        QUOTES: 'GFE_Quotes',
+        AI_MEASUREMENTS: 'AIWindowMeasurements',
+        SYSTEM_EVENTS: 'SystemEvents'
+    },
+    
+    // Site Configuration
+    SITES: {
+        PRODUCTION: {
+            SITE_ID: '5ec64f41-3f5e-4ba1-b9fc-018d3a8681a4',
+            CLIENT_ID: '11c09244-492f-4332-9983-e768db711388',
+            DOMAIN: 'goodfaithexteriors.com'
+        },
+        TEST: {
+            SITE_ID: '1daf6e42-c7ae-4e56-9a0f-24209afd43c2',
+            CLIENT_ID: '1009ff27-79a5-47c7-8a1d-553542c06569',
+            DOMAIN: 'goodfaithwindows.com'
+        }
+    }
+};
+
+// Enhanced secret management with all Wix secrets
+export async function getSecretValue(secretName) {
+    try {
+        return await wixSecrets.getSecret(secretName);
+    } catch (error) {
+        console.error(`Failed to get secret ${secretName}:`, error);
+        return null;
+    }
+}
+
+// Initialize all required secrets
+export async function initializeSecrets() {
+    const secrets = {};
+    
+    // Core System Secrets
+    const secretNames = [
+        'GFE_GIT_TOKEN', 'GRID_FLOW_ENGINE', 'GFE_APP_SECRET', 'GFE_API_KEY',
+        'SENTRY_USER_ID', 'SENTRY_ID', 'SENTRY_DSN', 'CGP_PROJECT_ID',
+        'GFE_CLAUDE_CODE_KEY', 'notebookLM-api', 'OPENAI_API_KEY', 'OPENAI_ASSISTANT_ID',
+        'cloud_vision_client_secret', 'cloud_vision_api_client_id',
+        'GFE_TEST_ACCOUNT_ID', 'GFE-TEST-META-SITE-ID', 'good-faith-exteriors-oauth-app-id',
+        'GFE-Headless-API', 'GFE-Headless-OAuth-Token', 'GFE-Headless-OAuth-Client-ID',
+        'GFE_API_MAX_RETRIES', 'GFE_BACKEND_API_KEY', 'BACKEND_URL',
+        'vercel_user_ID', 'vercel_token', 'COMPANY_EMAIL', 'COMPANY_PHONE', 'COMPANY_NAME',
+        'google_workspace_api_key', 'good-faith-exteriors-admin-api-key'
+    ];
+    
+    for (const secretName of secretNames) {
+        secrets[secretName] = await getSecretValue(secretName);
+    }
+    
+    return secrets;
+}
+
+// Enhanced iframe communication handler
+export async function handleIframeMessage(message, origin) {
+    try {
+        // Verify origin is trusted
+        const trustedOrigins = [
+            'https://goodfaithexteriors.com',
+            'https://goodfaithwindows.com',
+            'https://gfe-static-pages.storage.googleapis.com',
+            'https://goodfaithexteriors-widgets.storage.googleapis.com'
+        ];
+        
+        if (!trustedOrigins.includes(origin)) {
+            console.error('Untrusted iframe origin:', origin);
+            return { success: false, error: 'Untrusted origin' };
+        }
+        
+        const { type, data } = message;
+        
+        switch (type) {
+            case 'GFE_ANALYZE_IMAGE':
+                return await processImageAnalysis(data);
+            case 'GFE_REQUEST_QUOTE':
+                return await generateQuoteFromIframe(data);
+            case 'GFE_AI_CHAT':
+                return await processAIChat(data);
+            case 'GFE_LEAD_CAPTURE':
+                return await captureLead(data);
+            case 'GFE_REQUEST_PRODUCTS':
+                return await getProductCatalog(data);
+            default:
+                return { success: false, error: 'Unknown message type' };
+        }
+    } catch (error) {
+        console.error('Iframe message handling error:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+// Enhanced image analysis with Google Cloud Vision
+export async function processImageAnalysis(imageData) {
+    try {
+        const secrets = await initializeSecrets();
+        
+        // Use Cloud Vision API for image analysis
+        const response = await fetch(ENHANCED_GFE_CONFIG.CLOUD_SERVICES.ANNOTATE_HTTP, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${secrets['google_workspace_api_key']}`,
+                'X-Project-ID': ENHANCED_GFE_CONFIG.PROJECT_ID
+            },
+            body: JSON.stringify({
+                image: imageData.base64,
+                features: ['OBJECT_LOCALIZATION', 'TEXT_DETECTION', 'SAFE_SEARCH_DETECTION']
+            })
+        });
+        
+        const analysisResult = await response.json();
+        
+        // Store analysis in collection
+        const analysisRecord = {
+            customerId: imageData.customerId,
+            analysisId: `analysis_${Date.now()}`,
+            imageWidth: imageData.width,
+            imageHeight: imageData.height,
+            windowsDetected: analysisResult.objects?.filter(obj => 
+                obj.name.toLowerCase().includes('window')).length || 0,
+            confidenceScore: analysisResult.confidence || 0,
+            analysisData: analysisResult,
+            createdAt: new Date()
+        };
+        
+        await wixData.insert(ENHANCED_GFE_CONFIG.COLLECTIONS.AI_MEASUREMENTS, analysisRecord);
+        
+        return {
+            success: true,
+            analysisId: analysisRecord.analysisId,
+            windowsDetected: analysisRecord.windowsDetected,
+            analysis: analysisResult
+        };
+    } catch (error) {
+        console.error('Image analysis error:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+// Enhanced AI chat with Anthropic Claude integration
+export async function processAIChat(chatData) {
+    try {
+        const secrets = await initializeSecrets();
+        
+        const response = await fetch(`${ENHANCED_GFE_CONFIG.API_GATEWAY_URL}/api/chat`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-API-Key': secrets['GFE_API_KEY'],
+                'X-Project-ID': ENHANCED_GFE_CONFIG.PROJECT_ID,
+                'Authorization': `Bearer ${secrets['GFE_CLAUDE_CODE_KEY']}`
+            },
+            body: JSON.stringify({
+                message: chatData.message,
+                context: chatData.context,
+                sessionId: chatData.sessionId,
+                userId: chatData.userId
+            })
+        });
+        
+        const aiResponse = await response.json();
+        
+        // Log AI interaction
+        await logSystemEvent('AI_CHAT', {
+            userId: chatData.userId,
+            sessionId: chatData.sessionId,
+            message: chatData.message,
+            response: aiResponse.message
+        });
+        
+        return {
+            success: true,
+            message: aiResponse.message,
+            sessionId: chatData.sessionId
+        };
+    } catch (error) {
+        console.error('AI chat error:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+// Enhanced quote generation with AI estimation
+export async function generateQuoteFromIframe(quoteData) {
+    try {
+        const secrets = await initializeSecrets();
+        
+        // Get AI estimation first
+        const estimationResponse = await fetch(`${ENHANCED_GFE_CONFIG.API_GATEWAY_URL}/api/ai/estimate`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-API-Key': secrets['GFE_API_KEY'],
+                'X-Project-ID': ENHANCED_GFE_CONFIG.PROJECT_ID
+            },
+            body: JSON.stringify(quoteData)
+        });
+        
+        const estimation = await estimationResponse.json();
+        
+        // Create comprehensive quote
+        const quote = {
+            customerId: quoteData.customerId,
+            customerInfo: quoteData.customerInfo,
+            windows: estimation.windows || [],
+            aiEstimation: estimation,
+            totalCost: estimation.totalCost || 0,
+            laborCost: estimation.laborCost || 0,
+            materialCost: estimation.materialCost || 0,
+            status: 'draft',
+            validUntil: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+            createdAt: new Date(),
+            source: 'iframe_widget'
+        };
+        
+        const result = await wixData.insert(ENHANCED_GFE_CONFIG.COLLECTIONS.QUOTES, quote);
+        
+        // Notify backend systems
+        await notifyBackendSystems('quote_created', {
+            quoteId: result._id,
+            quote: quote
+        });
+        
+        return {
+            success: true,
+            quoteId: result._id,
+            quote: quote,
+            estimation: estimation
+        };
+    } catch (error) {
+        console.error('Quote generation error:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+// Enhanced lead capture with validation
+export async function captureLead(leadData) {
+    try {
+        // Validate lead data
+        if (!leadData.email || !leadData.fullName) {
+            return { success: false, error: 'Missing required fields' };
+        }
+        
+        const lead = {
+            ...leadData,
+            status: 'new',
+            source: 'iframe_widget',
+            leadScore: calculateLeadScore(leadData),
+            sessionId: leadData.sessionId || `session_${Date.now()}`,
+            createdAt: new Date(),
+            followUpDate: new Date(Date.now() + 24 * 60 * 60 * 1000)
+        };
+        
+        const result = await wixData.insert(ENHANCED_GFE_CONFIG.COLLECTIONS.LEADS, lead);
+        
+        // Trigger automation workflows
+        await triggerAutomation('lead_captured', {
+            leadId: result._id,
+            lead: lead
+        });
+        
+        return {
+            success: true,
+            leadId: result._id,
+            lead: lead
+        };
+    } catch (error) {
+        console.error('Lead capture error:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+// Enhanced product catalog with iframe optimization
+export async function getProductCatalog(filters = {}) {
+    try {
+        let query = wixData.query(ENHANCED_GFE_CONFIG.COLLECTIONS.WINDOW_PRODUCTS);
+        
+        // Apply filters
+        if (filters.brand) query = query.eq('brand', filters.brand);
+        if (filters.category) query = query.eq('category', filters.category);
+        if (filters.featured) query = query.eq('featured', true);
+        if (filters.inStock) query = query.eq('inStock', true);
+        
+        const results = await query.limit(50).find();
+        
+        // Format for iframe consumption
+        const products = results.items.map(product => ({
+            id: product._id,
+            name: product.name,
+            brand: product.brand,
+            price: product.price,
+            displayPrice: `$${product.price.toLocaleString()}`,
+            image: product.mainImage,
+            category: product.category,
+            inStock: product.inStock,
+            features: product.features || []
+        }));
+        
+        return {
+            success: true,
+            products: products,
+            totalCount: results.totalCount,
+            filters: filters
+        };
+    } catch (error) {
+        console.error('Product catalog error:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+// Calculate lead score based on data quality
+function calculateLeadScore(leadData) {
+    let score = 0;
+    
+    // Basic contact info
+    if (leadData.email) score += 20;
+    if (leadData.phone) score += 20;
+    if (leadData.fullName) score += 10;
+    
+    // Address information
+    if (leadData.address) score += 15;
+    
+    // Project information
+    if (leadData.projectType) score += 15;
+    if (leadData.notes && leadData.notes.length > 50) score += 10;
+    
+    // Engagement indicators
+    if (leadData.source === 'ai_chat') score += 10;
+    
+    return Math.min(score, 100);
+}
+
+// Notify backend systems
+async function notifyBackendSystems(eventType, data) {
+    try {
+        const secrets = await initializeSecrets();
+        
+        await fetch(`${ENHANCED_GFE_CONFIG.API_GATEWAY_URL}/api/webhooks/${eventType}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-API-Key': secrets['GFE_API_KEY'],
+                'X-Project-ID': ENHANCED_GFE_CONFIG.PROJECT_ID
+            },
+            body: JSON.stringify(data)
+        });
+    } catch (error) {
+        console.error('Backend notification error:', error);
+    }
+}
+
+// Trigger automation workflows
+async function triggerAutomation(triggerType, data) {
+    try {
+        const secrets = await initializeSecrets();
+        
+        // Trigger Zapier webhooks
+        if (secrets['zapier_key']) {
+            await fetch(`https://hooks.zapier.com/hooks/catch/${secrets['zapier_key']}/${triggerType}/`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+        }
+        
+        // Trigger internal automations
+        await logSystemEvent('AUTOMATION_TRIGGERED', {
+            triggerType: triggerType,
+            data: data
+        });
+    } catch (error) {
+        console.error('Automation trigger error:', error);
+    }
+}
+
+// Log system events
+async function logSystemEvent(eventType, eventData) {
+    try {
+        const event = {
+            eventId: `event_${Date.now()}`,
+            eventType: eventType,
+            customerId: eventData.customerId || null,
+            sessionId: eventData.sessionId || null,
+            eventData: eventData,
+            createdAt: new Date()
+        };
+        
+        await wixData.insert(ENHANCED_GFE_CONFIG.COLLECTIONS.SYSTEM_EVENTS, event);
+    } catch (error) {
+        console.error('Event logging error:', error);
+    }
+}
+
+// Get current site configuration
+export function getCurrentSiteConfig() {
+    const currentUrl = wixLocation.url;
+    
+    if (currentUrl.includes('goodfaithexteriors.com')) {
+        return ENHANCED_GFE_CONFIG.SITES.PRODUCTION;
+    } else if (currentUrl.includes('goodfaithwindows.com')) {
+        return ENHANCED_GFE_CONFIG.SITES.TEST;
+    }
+    
+    return ENHANCED_GFE_CONFIG.SITES.PRODUCTION; // default
+}
+
+// Health check for iframe integration
+export async function healthCheck() {
+    try {
+        const secrets = await initializeSecrets();
+        const siteConfig = getCurrentSiteConfig();
+        
+        const checks = {
+            secrets: !!secrets['GFE_API_KEY'],
+            apiGateway: false,
+            backend: false,
+            collections: false
+        };
+        
+        // Test API Gateway
+        try {
+            const gatewayResponse = await fetch(`${ENHANCED_GFE_CONFIG.API_GATEWAY_URL}/api/status`, {
+                method: 'GET',
+                headers: { 'X-API-Key': secrets['GFE_API_KEY'] }
+            });
+            checks.apiGateway = gatewayResponse.ok;
+        } catch (e) {
+            console.error('API Gateway health check failed:', e);
+        }
+        
+        // Test backend
+        try {
+            const backendResponse = await fetch(`${ENHANCED_GFE_CONFIG.BACKEND_URL}/health`);
+            checks.backend = backendResponse.ok;
+        } catch (e) {
+            console.error('Backend health check failed:', e);
+        }
+        
+        // Test collections
+        try {
+            await wixData.query(ENHANCED_GFE_CONFIG.COLLECTIONS.WINDOW_PRODUCTS).limit(1).find();
+            checks.collections = true;
+        } catch (e) {
+            console.error('Collections health check failed:', e);
+        }
+        
+        return {
+            status: 'healthy',
+            siteConfig: siteConfig,
+            checks: checks,
+            timestamp: new Date()
+        };
+    } catch (error) {
+        return {
+            status: 'unhealthy',
+            error: error.message,
+            timestamp: new Date()
+        };
+    }
+}

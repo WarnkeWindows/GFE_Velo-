@@ -1,0 +1,96 @@
+/**
+ * Good Faith Exteriors - Production Site Velo Backend
+ * Domain: goodfaithexteriors.com
+ * MetaSite ID: 5ec64f41-3f5e-4ba1-b9fc-018d3a8681a4
+ * Site ID: 5ec64f41-3f5e-4ba1-b9fc-018d3a8681a4
+ * Account ID: 10d52dd8-ec9b-4453-adbc-6293b99af499
+ * 
+ * OAuth Configuration:
+ * - Client ID: 11c09244-492f-4332-9983-e768db711388
+ * - App Name: GFE_VSC
+ * - Workspace: gridFlowEngine
+ * - Admin API: GFE-COMMAND-CENTER
+ * - Admin Token: IST.eyJraWQiOiJQb3pIX2FDMiIsImFsZyI6IlJTMjU2In0.eyJkYXRhIjoie1wiaWRcIjpcImRmNTllMzFmLWUwMjYtNGJkOS1hM2FmLTJhMTM0NGI1ZDU1NVwiLFwiaWRlbnRpdHlcIjp7XCJ0eXBlXCI6XCJhcHBsaWNhdGlvblwiLFwiaWRcIjpcImY5NWUzNTM2LTZiMTYtNDRkNS1iNWEzLWIxYTQ0ODVkMWZmY1wifSxcInRlbmFudFwiOntcInR5cGVcIjpcImFjY291bnRcIixcImlkXCI6XCIxMGQ1MmRkOC1lYzliLTQ0NTMtYWRiYy02MjkzYjk5YWY0OTlcIn19IiwiaWF0IjoxNzUxMzk1NTQ0fQ.BMu4aTFmA7FIyGfDSVfddU1X1Log0-Q4RTbr1abPy36-r0XU0zmYT1HJc-9YyXpPGtntyRhSmjbkbq6AyVPz9wBBttHtGpyF8UJdjagyKjWrvy5Pa-MH-6VdlQd3ZG3jds5nEl48asijQrPZ0dd5DMWWsrxuxUy4anJHlldhDvhH2zXBM7rL7zd24yda65evWE6kbcY-kuK28qpmawiiVnYEBhuWQCgSITHqLWo6NRaAaYsKLX8nZFPU6J9m6bkxI2Y3UmWQJ2xN7PHQdtjiiRCTxg2Lfhvrwh0fegDePXFHWR_S9a-NpXuU47mkFk4ATSzPSg7cCdMzCzlz1Wwhmg
+ * 
+ * GitHub Integration:
+ * - Repository: https://github.com/WarnkeWindows/gfe-production-velo
+ * - Branch: main
+ * - Auto-sync: Enabled
+ * 
+ * Google Cloud Integration:
+ * - Project ID: good-faith-exteriors
+ * - OAuth Client: 837326026335-og5oga2u90sm079ht8450s5j4v4kmio0.apps.googleusercontent.com
+ * - API Gateway: https://gfe-api-gateway-aonuaov3.uc.gateway.dev
+ * - Backend Container: https://gfe-backend-837326026335.us-central1.run.app
+ * 
+ * Collections Schema:
+ * - @goodfaithexteriors/good-faith-exteriors-online/CustomerLeads
+ * - GFE_WindowProducts, GFE_WindowTypes, GFE_WindowBrands
+ * - GFE_WindowOptions, GFE_Leads, GFE_Quotes
+ * 
+ * Last Updated: 2025-07-08
+ * Version: 2.0.0
+ */
+
+import wixData from 'wix-data';
+import wixSecrets from 'wix-secrets-backend';
+import { fetch } from 'wix-fetch';
+
+// Production Site Configuration
+export const PRODUCTION_CONFIG = {
+    SITE_INFO: {
+        DOMAIN: 'goodfaithexteriors.com',
+        META_SITE_ID: '5ec64f41-3f5e-4ba1-b9fc-018d3a8681a4',
+        SITE_ID: '5ec64f41-3f5e-4ba1-b9fc-018d3a8681a4',
+        ACCOUNT_ID: '10d52dd8-ec9b-4453-adbc-6293b99af499',
+        ENVIRONMENT: 'production'
+    },
+    
+    OAUTH: {
+        CLIENT_ID: '11c09244-492f-4332-9983-e768db711388',
+        APP_NAME: 'GFE_VSC',
+        WORKSPACE: 'gridFlowEngine',
+        ADMIN_API_NAME: 'GFE-COMMAND-CENTER'
+    },
+    
+    API_ENDPOINTS: {
+        WIX_HEADLESS: 'https://www.wix.com/_api/headless-v1',
+        API_GATEWAY: 'https://gfe-api-gateway-aonuaov3.uc.gateway.dev',
+        BACKEND_CONTAINER: 'https://gfe-backend-837326026335.us-central1.run.app'
+    },
+    
+    COLLECTIONS: {
+        CUSTOMER_LEADS: '@goodfaithexteriors/good-faith-exteriors-online/CustomerLeads',
+        WINDOW_PRODUCTS: 'GFE_WindowProducts',
+        WINDOW_TYPES: 'GFE_WindowTypes',
+        WINDOW_BRANDS: 'GFE_WindowBrands',
+        WINDOW_OPTIONS: 'GFE_WindowOptions',
+        LEADS: 'GFE_Leads',
+        QUOTES: 'GFE_Quotes'
+    },
+    
+    GITHUB: {
+        REPOSITORY: 'WarnkeWindows/gfe-production-velo',
+        BRANCH: 'main',
+        AUTO_SYNC: true
+    }
+};
+
+// Initialize production environment
+export async function initializeProductionEnvironment() {
+    try {
+        console.log('Initializing Good Faith Exteriors Production Environment');
+        console.log(`Site: ${PRODUCTION_CONFIG.SITE_INFO.DOMAIN}`);
+        console.log(`MetaSite ID: ${PRODUCTION_CONFIG.SITE_INFO.META_SITE_ID}`);
+        console.log(`OAuth Client: ${PRODUCTION_CONFIG.OAUTH.CLIENT_ID}`);
+        
+        return {
+            success: true,
+            environment: 'production',
+            config: PRODUCTION_CONFIG
+        };
+    } catch (error) {
+        console.error('Production environment initialization failed:', error);
+        return { success: false, error: error.message };
+    }
+}

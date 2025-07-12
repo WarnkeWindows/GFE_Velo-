@@ -1,0 +1,304 @@
+// Good Faith Exteriors - Admin Page
+// Administrative interface for system management
+// Site ID: 5ec64f41-3f5e-4ba1-b9fc-018d3a8681a4
+
+import { fetch } from 'wix-fetch';
+import { authentication } from 'wix-members';
+
+// Configuration
+const CONFIG = {
+    siteId: '5ec64f41-3f5e-4ba1-b9fc-018d3a8681a4',
+    appId: '14ce1214-b278-a7e4-1373-00cebd1bef7c',
+    apiGateway: 'https://gfe-api-gateway-aonuaov3.uc.gateway.dev',
+    backendUrl: 'https://gfe-backend-837326026335.us-central1.run.app',
+    commandCenterWidget: '#commandCenterWidget'
+};
+
+// Global state
+let currentUser = null;
+let isAdmin = false;
+
+$w.onReady(async function () {
+    console.log('🔧 GFE Admin Page initializing...');
+    
+    try {
+        // Check authentication and admin permissions
+        await checkAdminAccess();
+        
+        if (!isAdmin) {
+            showAccessDenied();
+            return;
+        }
+        
+        // Initialize Command Center widget
+        await initializeCommandCenter();
+        
+        // Setup admin controls
+        setupAdminControls();
+        
+        // Initialize monitoring
+        startSystemMonitoring();
+        
+        console.log('✅ Admin Page initialized successfully');
+        
+    } catch (error) {
+        console.error('❌ Admin Page initialization failed:', error);
+        showError('Failed to initialize admin page. Please contact support.');
+    }
+});
+
+// Check admin access
+async function checkAdminAccess() {
+    try {
+        // Get current user
+        const user = await authentication.getCurrentUser();
+        if (!user) {
+            throw new Error('Authentication required');
+        }
+        
+        currentUser = user;
+        
+        // Check admin permissions
+        const response = await fetch(`${CONFIG.backendUrl}/api/auth/check-admin`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Wix-Site-Id': CONFIG.siteId,
+                'X-User-Id': user.id
+            },
+            body: JSON.stringify({
+                userId: user.id,
+                siteId: CONFIG.siteId
+            })
+        });
+        
+        if (!response.ok) {
+            throw new Error('Admin access check failed');
+        }
+        
+        const data = await response.json();
+        isAdmin = data.isAdmin || false;
+        
+        console.log('👤 Admin access verified:', isAdmin);
+        
+    } catch (error) {
+        console.error('Admin access check failed:', error);
+        isAdmin = false;
+    }
+}
+
+// Initialize Command Center widget
+async function initializeCommandCenter() {
+    try {
+        const commandCenterContainer = $w(CONFIG.commandCenterWidget);
+        
+        if (commandCenterContainer) {
+            // Load Command Center widget
+            commandCenterContainer.src = '/src/widgets/Command Center/CommandCenter.js';
+            
+            // Configure widget settings
+            const widgetSettings = {
+                refreshInterval: 30000,
+                maxLogs: 100,
+                enableRealTime: true,
+                theme: 'light',
+                defaultTab: 'overview'
+            };
+            
+            // Send configuration to widget
+            setTimeout(() => {
+                commandCenterContainer.postMessage({
+                    type: 'WIDGET_CONFIG',
+                    settings: widgetSettings,
+                    userContext: {
+                        userId: currentUser.id,
+                        role: 'admin',
+                        siteId: CONFIG.siteId
+                    }
+                }, '*');
+            }, 1000);
+            
+            console.log('✅ Command Center widget initialized');
+        }
+        
+    } catch (error) {
+        console.error('Command Center initialization failed:', error);
+    }
+}
+
+// Setup admin controls
+function setupAdminControls() {
+    // System controls
+    if ($w('#systemRestartButton')) {
+        $w('#systemRestartButton').onClick(async () => {
+            if (confirm('Are you sure you want to restart system services?')) {
+                await executeAdminAction('restart_system');
+            }
+        });
+    }
+    
+    if ($w('#clearCacheButton')) {
+        $w('#clearCacheButton').onClick(async () => {
+            await executeAdminAction('clear_cache');
+        });
+    }
+    
+    if ($w('#backupButton')) {
+        $w('#backupButton').onClick(async () => {
+            await executeAdminAction('backup_database');
+        });
+    }
+    
+    if ($w('#syncDataButton')) {
+        $w('#syncDataButton').onClick(async () => {
+            await executeAdminAction('sync_data');
+        });
+    }
+    
+    // Navigation controls
+    if ($w('#homeButton')) {
+        $w('#homeButton').onClick(() => {
+            window.location.href = '/';
+        });
+    }
+    
+    if ($w('#refreshButton')) {
+        $w('#refreshButton').onClick(() => {
+            window.location.reload();
+        });
+    }
+}
+
+// Execute admin action
+async function executeAdminAction(action) {
+    try {
+        showLoading(true);
+        
+        const response = await fetch(`${CONFIG.backendUrl}/api/admin/action`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Wix-Site-Id': CONFIG.siteId,
+                'X-User-Id': currentUser.id,
+                'X-Admin-Action': action
+            },
+            body: JSON.stringify({
+                action: action,
+                userId: currentUser.id,
+                timestamp: new Date().toISOString()
+            })
+        });
+        
+        if (!response.ok) {
+            throw new Error(`Admin action failed: ${response.status}`);
+        }
+        
+        const result = await response.json();
+        
+        showSuccess(`Action "${action}" completed successfully`);
+        console.log('✅ Admin action completed:', action);
+        
+        // Refresh Command Center data
+        refreshCommandCenter();
+        
+    } catch (error) {
+        console.error('Admin action failed:', error);
+        showError(`Failed to execute action: ${action}`);
+    } finally {
+        showLoading(false);
+    }
+}
+
+// Start system monitoring
+function startSystemMonitoring() {
+    // Check system health every 30 seconds
+    setInterval(async () => {
+        await checkSystemHealth();
+    }, 30000);
+    
+    // Initial health check
+    checkSystemHealth();
+}
+
+// Check system health
+async function checkSystemHealth() {
+    try {
+        const response = await fetch(`${CONFIG.backendUrl}/health`, {
+            method: 'GET',
+            headers: {
+                'X-Wix-Site-Id': CONFIG.siteId
+            }
+        });
+        
+        const isHealthy = response.ok;
+        updateSystemStatus(isHealthy);
+        
+    } catch (error) {
+        console.error('Health check failed:', error);
+        updateSystemStatus(false);
+    }
+}
+
+// Update system status display
+function updateSystemStatus(isHealthy) {
+    const statusElement = $w('#systemStatus');
+    if (statusElement) {
+        statusElement.text = isHealthy ? 'System Online' : 'System Offline';
+        statusElement.style.color = isHealthy ? '#48BB78' : '#F56565';
+    }
+}
+
+// Refresh Command Center
+function refreshCommandCenter() {
+    const commandCenterContainer = $w(CONFIG.commandCenterWidget);
+    if (commandCenterContainer) {
+        commandCenterContainer.postMessage({
+            type: 'REFRESH_DATA'
+        }, '*');
+    }
+}
+
+// Show access denied
+function showAccessDenied() {
+    if ($w('#accessDeniedMessage')) {
+        $w('#accessDeniedMessage').show();
+        $w('#accessDeniedMessage').text = 'Admin access required. Please contact support if you need admin privileges.';
+    }
+    
+    // Hide admin controls
+    if ($w('#adminControls')) {
+        $w('#adminControls').hide();
+    }
+}
+
+// Show loading state
+function showLoading(show) {
+    if ($w('#loadingIndicator')) {
+        if (show) {
+            $w('#loadingIndicator').show();
+        } else {
+            $w('#loadingIndicator').hide();
+        }
+    }
+}
+
+// Show success message
+function showSuccess(message) {
+    if ($w('#successMessage')) {
+        $w('#successMessage').text = message;
+        $w('#successMessage').show();
+        setTimeout(() => $w('#successMessage').hide(), 5000);
+    }
+}
+
+// Show error message
+function showError(message) {
+    if ($w('#errorMessage')) {
+        $w('#errorMessage').text = message;
+        $w('#errorMessage').show();
+        setTimeout(() => $w('#errorMessage').hide(), 5000);
+    }
+}
+
+// Export functions for testing
+export { checkAdminAccess, executeAdminAction, CONFIG };

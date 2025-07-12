@@ -1,0 +1,8 @@
+// Placeholder file to replace deprecated anthropic-vertex-integration
+// This file has been deprecated and replaced by admin-integration.jsw
+// All functionality has been moved to the new MCP system
+
+export function deprecatedFunction() {
+    console.log('This function has been deprecated. Please use admin-integration.jsw');
+    return { success: false, message: 'Function deprecated' };
+}

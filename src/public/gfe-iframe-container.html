@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GFE Iframe Container</title>
+    
+    <!-- Sentry Error Tracking -->
+    <script src="https://browser.sentry-cdn.com/7.0.0/bundle.min.js" crossorigin="anonymous"></script>
+    <script>
+        Sentry.init({
+            dsn: "https://daf10ccaaf2dcea42bc8ab5340f36027@o4509594994868224.ingest.us.sentry.io/4509595014463489",
+            environment: "production",
+            tracesSampleRate: 1.0
+        });
+    </script>
+    
+    <style>
+        :root {
+            --gfe-navy: #1A365D;
+            --gfe-navy-light: #2D3748;
+            --gfe-navy-dark: #1A202C;
+            --gfe-gold: #D4AF37;
+            --gfe-gold-light: #F6E05E;
+            --gfe-gold-dark: #B7791F;
+            --gfe-silver: #C0C0C0;
+            --gfe-silver-light: #E2E8F0;
+            --gfe-silver-dark: #9CA3AF;
+            --gfe-success: #48BB78;
+            --gfe-error: #F56565;
+            --gfe-warning: #ED8936;
+            --gfe-white: #FFFFFF;
+            --gfe-black: #000000;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background: linear-gradient(135deg, var(--gfe-navy) 0%, var(--gfe-navy-light) 100%);
+            color: var(--gfe-white);
+            min-height: 100vh;
+            overflow: hidden;
+        }
+
+        .iframe-container {
+            width: 100%;
+            height: 100vh;
+            position: relative;
+            background: transparent;
+        }
+
+        .iframe-content {
+            width: 100%;
+            height: 100%;
+            border: none;
+            background: transparent;
+        }
+
+        .loading-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, var(--gfe-navy) 0%, var(--gfe-navy-light) 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            z-index: 1000;
+            transition: opacity 0.3s ease;
+        }
+
+        .loading-overlay.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid rgba(212, 175, 55, 0.3);
+            border-top: 4px solid var(--gfe-gold);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            color: var(--gfe-silver-light);
+            font-size: 1.1rem;
+            text-align: center;
+        }
+
+        .error-container {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(245, 101, 101, 0.1);
+            border: 1px solid var(--gfe-error);
+            border-radius: 15px;
+            padding: 2rem;
+            text-align: center;
+            display: none;
+            z-index: 1001;
+        }
+
+        .error-container h3 {
+            color: var(--gfe-error);
+            margin-bottom: 1rem;
+        }
+
+        .error-container p {
+            color: var(--gfe-silver-light);
+            margin-bottom: 1rem;
+        }
+
+        .retry-button {
+            background: var(--gfe-gold);
+            color: var(--gfe-navy);
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .retry-button:hover {
+            background: var(--gfe-gold-light);
+            transform: translateY(-2px);
+        }
+
+        .status-indicator {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 0.5rem 1rem;
+            font-size: 0.8rem;
+            backdrop-filter: blur(10px);
+            z-index: 1002;
+        }
+
+        .status-indicator.connected {
+            border: 1px solid var(--gfe-success);
+            color: var(--gfe-success);
+        }
+
+        .status-indicator.disconnected {
+            border: 1px solid var(--gfe-error);
+            color: var(--gfe-error);
+        }
+
+        .status-indicator.loading {
+            border: 1px solid var(--gfe-warning);
+            color: var(--gfe-warning);
+        }
+    </style>
+</head>
+<body>
+    <div class="iframe-container">
+        <div class="loading-overlay" id="loadingOverlay">
+            <div class="loading-spinner"></div>
+            <div class="loading-text">Loading GFE Component...</div>
+        </div>
+        
+        <div class="error-container" id="errorContainer">
+            <h3>Component Load Error</h3>
+            <p id="errorMessage">Failed to load the requested component.</p>
+            <button class="retry-button" onclick="retryLoad()">Retry</button>
+        </div>
+        
+        <div class="status-indicator loading" id="statusIndicator">
+            <span id="statusText">Connecting...</span>
+        </div>
+        
+        <iframe class="iframe-content" id="componentFrame" sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals allow-presentation"></iframe>
+    </div>
+
+    <script>
+        // GFE Iframe Container Management System
+        class GFEIframeContainer {
+            constructor() {
+                this.sessionId = `container_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+                this.currentComponent = null;
+                this.loadTimeout = null;
+                this.parentOrigin = '*';
+                this.isConnected = false;
+                
+                this.init();
+            }
+            
+            init() {
+                console.log('🏗️ GFE Iframe Container initializing...');
+                
+                // Get component from URL parameters
+                const urlParams = new URLSearchParams(window.location.search);
+                this.currentComponent = urlParams.get('component') || 'home';
+                
+                // Setup parent communication
+                this.setupParentCommunication();
+                
+                // Load the requested component
+                this.loadComponent();
+                
+                // Setup error handling
+                this.setupErrorHandling();
+                
+                console.log('✅ GFE Iframe Container ready');
+            }
+            
+            setupParentCommunication() {
+                // Listen for messages from parent
+                window.addEventListener('message', (event) => {
+                    if (event.data && event.data.type) {
+                        this.handleParentMessage(event.data);
+                    }
+                });
+                
+                // Listen for messages from child iframe
+                window.addEventListener('message', (event) => {
+                    if (event.source === document.getElementById('componentFrame').contentWindow) {
+                        this.handleChildMessage(event.data);
+                    }
+                });
+            }
+            
+            handleParentMessage(message) {
+                switch (message.type) {
+                    case 'GFE_LOAD_COMPONENT':
+                        this.loadComponent(message.component, message.config);
+                        break;
+                    case 'GFE_CONFIG_UPDATE':
+                        this.forwardToChild(message);
+                        break;
+                    case 'GFE_HEALTH_CHECK':
+                        this.performHealthCheck();
+                        break;
+                    case 'GFE_RELOAD_COMPONENT':
+                        this.reloadComponent();
+                        break;
+                    default:
+                        // Forward unknown messages to child
+                        this.forwardToChild(message);
+                }
+            }
+            
+            handleChildMessage(message) {
+                // Add container metadata
+                const enhancedMessage = {
+                    ...message,
+                    containerSessionId: this.sessionId,
+                    containerTimestamp: Date.now()
+                };
+                
+                // Forward to parent
+                this.notifyParent(enhancedMessage);
+                
+                // Handle special child messages
+                switch (message.type) {
+                    case 'GFE_COMPONENT_READY':
+                        this.handleComponentReady(message);
+                        break;
+                    case 'GFE_COMPONENT_ERROR':
+                        this.handleComponentError(message);
+                        break;
+                }
+            }
+            
+            loadComponent(componentName = null, config = null) {
+                const component = componentName || this.currentComponent;
+                const iframe = document.getElementById('componentFrame');
+                
+                // Show loading
+                this.showLoading(`Loading ${component}...`);
+                this.updateStatus('loading', 'Loading...');
+                
+                // Clear any existing timeout
+                if (this.loadTimeout) {
+                    clearTimeout(this.loadTimeout);
+                }
+                
+                // Map component names to file paths
+                const componentPaths = {
+                    'home': 'gfe-home-iframe.html',
+                    'unified-home': 'gfe-unified-homepage.html',
+                    'chat': 'ai-chat-agent.html',
+                    'estimator': 'ai-window-estimator.html',
+                    'measure': 'ai-window-measure.html',
+                    'products': 'product-browser.html',
+                    'property-analysis': 'property-analysis-hub.html',
+                    'window-estimator': 'window-estimator-iframe.html'
+                };
+                
+                const componentPath = componentPaths[component] || componentPaths['home'];
+                
+                // Set iframe source
+                iframe.src = componentPath;
+                
+                // Set load timeout
+                this.loadTimeout = setTimeout(() => {
+                    this.showError('Component load timeout', 'The component took too long to load. Please try again.');
+                }, 30000); // 30 second timeout
+                
+                // Listen for iframe load
+                iframe.onload = () => {
+                    console.log(`✅ Component ${component} loaded successfully`);
+                    this.currentComponent = component;
+                    
+                    // Send initial configuration if provided
+                    if (config) {
+                        setTimeout(() => {
+                            this.forwardToChild({
+                                type: 'GFE_CONFIG_UPDATE',
+                                config: config
+                            });
+                        }, 1000);
+                    }
+                };
+                
+                iframe.onerror = (error) => {
+                    console.error(`❌ Failed to load component ${component}:`, error);
+                    this.showError('Component Load Error', `Failed to load ${component}. Please check the component path.`);
+                };
+            }
+            
+            handleComponentReady(message) {
+                console.log('🚀 Component ready:', message);
+                
+                // Clear timeout
+                if (this.loadTimeout) {
+                    clearTimeout(this.loadTimeout);
+                    this.loadTimeout = null;
+                }
+                
+                // Hide loading
+                this.hideLoading();
+                this.updateStatus('connected', 'Connected');
+                this.isConnected = true;
+                
+                // Notify parent
+                this.notifyParent({
+                    type: 'GFE_CONTAINER_READY',
+                    source: 'gfe-iframe-container',
+                    sessionId: this.sessionId,
+                    component: this.currentComponent,
+                    childMessage: message
+                });
+            }
+            
+            handleComponentError(message) {
+                console.error('❌ Component error:', message);
+                this.showError('Component Error', message.error || 'An unknown error occurred');
+                this.updateStatus('disconnected', 'Error');
+            }
+            
+            forwardToChild(message) {
+                const iframe = document.getElementById('componentFrame');
+                if (iframe.contentWindow) {
+                    iframe.contentWindow.postMessage(message, '*');
+                }
+            }
+            
+            notifyParent(message) {
+                try {
+                    window.parent.postMessage(message, this.parentOrigin);
+                } catch (error) {
+                    console.error('Failed to notify parent:', error);
+                }
+            }
+            
+            showLoading(text = 'Loading...') {
+                const overlay = document.getElementById('loadingOverlay');
+                const textElement = overlay.querySelector('.loading-text');
+                
+                textElement.textContent = text;
+                overlay.classList.remove('hidden');
+            }
+            
+            hideLoading() {
+                const overlay = document.getElementById('loadingOverlay');
+                overlay.classList.add('hidden');
+            }
+            
+            showError(title, message) {
+                const errorContainer = document.getElementById('errorContainer');
+                const errorMessage = document.getElementById('errorMessage');
+                
+                errorContainer.querySelector('h3').textContent = title;
+                errorMessage.textContent = message;
+                
+                this.hideLoading();
+                errorContainer.style.display = 'block';
+                this.updateStatus('disconnected', 'Error');
+            }
+            
+            hideError() {
+                const errorContainer = document.getElementById('errorContainer');
+                errorContainer.style.display = 'none';
+            }
+            
+            updateStatus(status, text) {
+                const indicator = document.getElementById('statusIndicator');
+                const statusText = document.getElementById('statusText');
+                
+                indicator.className = `status-indicator ${status}`;
+                statusText.textContent = text;
+            }
+            
+            performHealthCheck() {
+                const healthData = {
+                    type: 'GFE_HEALTH_RESPONSE',
+                    source: 'gfe-iframe-container',
+                    sessionId: this.sessionId,
+                    status: 'healthy',
+                    timestamp: Date.now(),
+                    component: this.currentComponent,
+                    isConnected: this.isConnected,
+                    userAgent: navigator.userAgent
+                };
+                
+                this.notifyParent(healthData);
+                
+                // Forward health check to child
+                this.forwardToChild({
+                    type: 'GFE_HEALTH_CHECK',
+                    timestamp: Date.now()
+                });
+            }
+            
+            reloadComponent() {
+                console.log('🔄 Reloading component...');
+                this.hideError();
+                this.isConnected = false;
+                this.loadComponent();
+            }
+            
+            setupErrorHandling() {
+                window.addEventListener('error', (event) => {
+                    console.error('Global error:', event.error);
+                    this.notifyParent({
+                        type: 'GFE_CONTAINER_ERROR',
+                        source: 'gfe-iframe-container',
+                        sessionId: this.sessionId,
+                        error: event.error.message,
+                        timestamp: Date.now()
+                    });
+                });
+                
+                window.addEventListener('unhandledrejection', (event) => {
+                    console.error('Unhandled promise rejection:', event.reason);
+                    this.notifyParent({
+                        type: 'GFE_CONTAINER_ERROR',
+                        source: 'gfe-iframe-container',
+                        sessionId: this.sessionId,
+                        error: event.reason.toString(),
+                        timestamp: Date.now()
+                    });
+                });
+            }
+        }
+        
+        // Global retry function
+        function retryLoad() {
+            if (window.gfeContainer) {
+                window.gfeContainer.reloadComponent();
+            }
+        }
+        
+        // Initialize the container
+        const gfeContainer = new GFEIframeContainer();
+        window.gfeContainer = gfeContainer;
+    </script>
+</body>
+</html>

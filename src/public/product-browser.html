@@ -1,0 +1,1272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Product Browser - Good Faith Exteriors</title>
+    
+    <!-- Sentry Error Tracking -->
+    <script src="https://browser.sentry-cdn.com/7.0.0/bundle.min.js" crossorigin="anonymous"></script>
+    <script>
+        Sentry.init({
+            dsn: "https://daf10ccaaf2dcea42bc8ab5340f36027@o4509594994868224.ingest.us.sentry.io/4509595014463489",
+            environment: "production",
+            tracesSampleRate: 1.0
+        });
+    </script>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #1a2332 0%, #0f1419 100%);
+            color: #ffffff;
+            min-height: 100vh;
+            padding: 1rem;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        .logo {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 1rem;
+            background: linear-gradient(135deg, #d4af37 0%, #f4d03f 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 10px 30px rgba(212, 175, 55, 0.3);
+        }
+
+        .logo i {
+            font-size: 2rem;
+            color: #1a2332;
+        }
+
+        .title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(135deg, #d4af37 0%, #f4d03f 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .subtitle {
+            font-size: 1.1rem;
+            color: #a0a9b8;
+            margin-bottom: 2rem;
+        }
+
+        .controls {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .controls-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .control-label {
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+            color: #e1e5e9;
+        }
+
+        .control-input, .control-select {
+            padding: 0.75rem 1rem;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            color: #ffffff;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .control-input:focus, .control-select:focus {
+            outline: none;
+            border-color: #d4af37;
+            box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.2);
+        }
+
+        .control-input::placeholder {
+            color: #a0a9b8;
+        }
+
+        .search-bar {
+            position: relative;
+            grid-column: 1 / -1;
+        }
+
+        .search-input {
+            width: 100%;
+            padding-left: 3rem;
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #a0a9b8;
+        }
+
+        .filter-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+
+        .filter-tag {
+            background: rgba(212, 175, 55, 0.2);
+            color: #d4af37;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .filter-tag:hover {
+            background: rgba(212, 175, 55, 0.3);
+        }
+
+        .filter-tag .remove {
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .products-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .product-card {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            overflow: hidden;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .product-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+            border-color: #d4af37;
+        }
+
+        .product-image {
+            width: 100%;
+            height: 200px;
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .product-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .product-image .placeholder {
+            font-size: 3rem;
+            color: #7f8c8d;
+        }
+
+        .product-badge {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            background: #d4af37;
+            color: #1a2332;
+            padding: 0.25rem 0.75rem;
+            border-radius: 15px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .product-content {
+            padding: 1.5rem;
+        }
+
+        .product-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: #ffffff;
+        }
+
+        .product-description {
+            color: #a0a9b8;
+            font-size: 0.9rem;
+            margin-bottom: 1rem;
+            line-height: 1.5;
+        }
+
+        .product-specs {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .spec-item {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.9rem;
+        }
+
+        .spec-label {
+            color: #a0a9b8;
+        }
+
+        .spec-value {
+            color: #ffffff;
+            font-weight: 500;
+        }
+
+        .product-price {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #d4af37;
+            margin-bottom: 1rem;
+        }
+
+        .product-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .btn {
+            padding: 0.75rem 1rem;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            flex: 1;
+            text-align: center;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #d4af37 0%, #f4d03f 100%);
+            color: #1a2332;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(212, 175, 55, 0.3);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.1);
+            color: #ffffff;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 3rem;
+        }
+
+        .spinner {
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top: 3px solid #d4af37;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .no-products {
+            text-align: center;
+            padding: 3rem;
+            color: #a0a9b8;
+            display: none;
+        }
+
+        .no-products i {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            color: #7f8c8d;
+        }
+
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+
+        .pagination-btn {
+            background: rgba(255, 255, 255, 0.1);
+            color: #ffffff;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .pagination-btn:hover:not(:disabled) {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .pagination-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .pagination-info {
+            color: #a0a9b8;
+            font-size: 0.9rem;
+        }
+
+        .product-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            backdrop-filter: blur(5px);
+        }
+
+        .modal-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: #1a2332;
+            border-radius: 15px;
+            padding: 2rem;
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .modal-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #d4af37;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            color: #a0a9b8;
+            font-size: 1.5rem;
+            cursor: pointer;
+            transition: color 0.3s ease;
+        }
+
+        .modal-close:hover {
+            color: #ffffff;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+            
+            .title {
+                font-size: 2rem;
+            }
+            
+            .controls-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .products-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .product-actions {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo">
+                <i class="fas fa-th-large"></i>
+            </div>
+            <h1 class="title">Product Browser</h1>
+            <p class="subtitle">Explore our premium window and door collection</p>
+        </div>
+
+        <div class="controls">
+            <div class="controls-grid">
+                <div class="control-group search-bar">
+                    <label class="control-label">Search Products</label>
+                    <div style="position: relative;">
+                        <input type="text" class="control-input search-input" id="searchInput" placeholder="Search by name, type, or material...">
+                        <i class="fas fa-search search-icon"></i>
+                    </div>
+                </div>
+                <div class="control-group">
+                    <label class="control-label">Category</label>
+                    <select class="control-select" id="categoryFilter">
+                        <option value="">All Categories</option>
+                        <option value="windows">Windows</option>
+                        <option value="doors">Doors</option>
+                        <option value="accessories">Accessories</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label class="control-label">Material</label>
+                    <select class="control-select" id="materialFilter">
+                        <option value="">All Materials</option>
+                        <option value="vinyl">Vinyl</option>
+                        <option value="wood">Wood</option>
+                        <option value="aluminum">Aluminum</option>
+                        <option value="fiberglass">Fiberglass</option>
+                        <option value="composite">Composite</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label class="control-label">Price Range</label>
+                    <select class="control-select" id="priceFilter">
+                        <option value="">All Prices</option>
+                        <option value="0-500">$0 - $500</option>
+                        <option value="500-1000">$500 - $1,000</option>
+                        <option value="1000-2000">$1,000 - $2,000</option>
+                        <option value="2000+">$2,000+</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label class="control-label">Sort By</label>
+                    <select class="control-select" id="sortFilter">
+                        <option value="name">Name</option>
+                        <option value="price-low">Price: Low to High</option>
+                        <option value="price-high">Price: High to Low</option>
+                        <option value="rating">Rating</option>
+                        <option value="newest">Newest</option>
+                    </select>
+                </div>
+            </div>
+            <div class="filter-tags" id="filterTags"></div>
+        </div>
+
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p>Loading products...</p>
+        </div>
+
+        <div class="no-products" id="noProducts">
+            <i class="fas fa-search"></i>
+            <h3>No products found</h3>
+            <p>Try adjusting your search criteria or filters</p>
+        </div>
+
+        <div class="products-grid" id="productsGrid">
+            <!-- Products will be loaded dynamically -->
+        </div>
+
+        <div class="pagination" id="pagination">
+            <button class="pagination-btn" id="prevBtn" onclick="changePage(-1)">
+                <i class="fas fa-chevron-left"></i> Previous
+            </button>
+            <span class="pagination-info" id="paginationInfo">Page 1 of 1</span>
+            <button class="pagination-btn" id="nextBtn" onclick="changePage(1)">
+                Next <i class="fas fa-chevron-right"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Product Modal -->
+    <div class="product-modal" id="productModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title" id="modalTitle">Product Details</h3>
+                <button class="modal-close" onclick="closeModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div id="modalBody">
+                <!-- Modal content will be loaded dynamically -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Configuration matching Google Cloud backend containers
+        const CONFIG = {
+            // Google Cloud Backend Services
+            API_GATEWAY_URL: 'https://gfe-api-gateway-aonuaov3.uc.gateway.dev',
+            BACKEND_URL: 'https://gfe-backend-837326026335.us-central1.run.app',
+            PROJECT_ID: 'good-faith-exteriors',
+            PROJECT_NUMBER: '837326026335',
+            
+            // Cloud Run Services
+            CLOUD_SERVICES: {
+                KNOWLEDGE_BASE: 'https://knowledge-base-webhook-837326026335.us-central1.run.app',
+                ANNOTATE_HTTP: 'https://annotate-http-837326026335.us-central1.run.app',
+                VISION_PROCESSING: 'https://annotate-gcs-837326026335.us-central1.run.app'
+            },
+            
+            // Google Cloud Storage Buckets
+            STORAGE_BUCKETS: {
+                WIDGETS: 'goodfaithexteriors-widgets',
+                STATIC_PAGES: 'gfe-static-pages',
+                IMAGE_ANALYSIS: 'image-analysis-library',
+                VISION_INPUT: 'vision-input-837326026335'
+            },
+            
+            // Wix Configuration
+            wixSiteId: '5ec64f41-3f5e-4ba1-b9fc-018d3a8681a4',
+            wixClientId: '11c09244-492f-4332-9983-e768db711388',
+            
+            // React Components URLs (from Google Cloud Storage)
+            REACT_COMPONENTS: {
+                WINDOW_ESTIMATOR: 'https://goodfaithexteriors-widgets.storage.googleapis.com/WindowEstimator/WindowEstimator.js',
+                PRODUCT_BROWSER: 'https://goodfaithexteriors-widgets.storage.googleapis.com/ProductBrowser/ProductBrowser.js',
+                TRAINING_COMPONENTS: 'https://goodfaithexteriors-widgets.storage.googleapis.com/TrainingComponents/TrainingComponents.js',
+                SHARED_SERVICES: 'https://goodfaithexteriors-widgets.storage.googleapis.com/shared/services/',
+                SHARED_HOOKS: 'https://goodfaithexteriors-widgets.storage.googleapis.com/shared/hooks/'
+            },
+            
+            // Product Browser Configuration
+            productsPerPage: 12
+        };
+
+        // State
+        let currentPage = 1;
+        let totalPages = 1;
+        let allProducts = [];
+        let filteredProducts = [];
+        let activeFilters = {};
+
+        // Sample product data (fallback)
+        const sampleProducts = [
+            {
+                id: 1,
+                name: "Premium Vinyl Double Hung Window",
+                category: "windows",
+                material: "vinyl",
+                price: 450,
+                rating: 4.8,
+                image: null,
+                description: "Energy-efficient double hung window with premium vinyl frame and low-E glass coating.",
+                specs: {
+                    "Frame Material": "Vinyl",
+                    "Glass Type": "Low-E",
+                    "Energy Rating": "A+",
+                    "Warranty": "Lifetime"
+                },
+                badge: "Popular"
+            },
+            {
+                id: 2,
+                name: "Wood Casement Window",
+                category: "windows",
+                material: "wood",
+                price: 750,
+                rating: 4.9,
+                image: null,
+                description: "Handcrafted wood casement window with superior insulation and classic design.",
+                specs: {
+                    "Frame Material": "Oak Wood",
+                    "Glass Type": "Triple Pane",
+                    "Energy Rating": "A++",
+                    "Warranty": "25 Years"
+                },
+                badge: "Premium"
+            },
+            {
+                id: 3,
+                name: "Aluminum Sliding Window",
+                category: "windows",
+                material: "aluminum",
+                price: 320,
+                rating: 4.5,
+                image: null,
+                description: "Durable aluminum sliding window perfect for modern homes and commercial applications.",
+                specs: {
+                    "Frame Material": "Aluminum",
+                    "Glass Type": "Double Pane",
+                    "Energy Rating": "B+",
+                    "Warranty": "15 Years"
+                },
+                badge: "Value"
+            }
+        ];
+
+        // GFE Iframe Communication System
+        class GFEProductBrowserIframe {
+            constructor() {
+                this.sessionId = `browser_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+                this.parentOrigin = '*';
+                this.reactComponentsLoaded = false;
+                this.init();
+            }
+            
+            async init() {
+                console.log('🛍️ GFE Product Browser iframe initializing...');
+                
+                // Setup parent communication
+                this.setupParentCommunication();
+                
+                // Load React components from Google Cloud Storage
+                await this.loadReactComponents();
+                
+                // Initialize iframe communication
+                this.initializeIframeCommunication();
+                
+                // Notify parent that component is ready
+                this.notifyParent({
+                    type: 'GFE_COMPONENT_READY',
+                    source: 'product-browser',
+                    sessionId: this.sessionId,
+                    capabilities: ['product_browsing', 'filtering', 'search', 'quote_request', 'wishlist']
+                });
+                
+                console.log('✅ GFE Product Browser iframe ready');
+            }
+            
+            setupParentCommunication() {
+                window.addEventListener('message', (event) => {
+                    if (event.data && event.data.type) {
+                        this.handleParentMessage(event.data);
+                    }
+                });
+            }
+            
+            handleParentMessage(message) {
+                switch (message.type) {
+                    case 'GFE_CONFIG_UPDATE':
+                        console.log('📋 Config update received:', message.config);
+                        this.updateConfiguration(message.config);
+                        break;
+                    case 'GFE_HEALTH_CHECK':
+                        this.respondToHealthCheck();
+                        break;
+                    case 'GFE_USER_DATA':
+                        this.updateUserData(message.userData);
+                        break;
+                    case 'GFE_PRODUCT_FILTER':
+                        this.applyExternalFilter(message.filter);
+                        break;
+                }
+            }
+            
+            async loadReactComponents() {
+                try {
+                    // Load React components from Google Cloud Storage
+                    const componentScript = document.createElement('script');
+                    componentScript.src = CONFIG.REACT_COMPONENTS.PRODUCT_BROWSER;
+                    componentScript.onload = () => {
+                        console.log('✅ React ProductBrowser component loaded');
+                        this.reactComponentsLoaded = true;
+                        this.initializeReactComponent();
+                    };
+                    componentScript.onerror = () => {
+                        console.warn('⚠️ Failed to load React component, using fallback');
+                        this.reactComponentsLoaded = false;
+                    };
+                    document.head.appendChild(componentScript);
+                } catch (error) {
+                    console.error('❌ Error loading React components:', error);
+                    this.reactComponentsLoaded = false;
+                }
+            }
+            
+            initializeReactComponent() {
+                // If React components are loaded, initialize them
+                if (this.reactComponentsLoaded && window.ProductBrowser) {
+                    const containerElement = document.querySelector('.container');
+                    
+                    // Create React container
+                    const reactContainer = document.createElement('div');
+                    reactContainer.id = 'react-product-browser';
+                    containerElement.appendChild(reactContainer);
+                    
+                    // Initialize React component
+                    window.ProductBrowser.init({
+                        container: reactContainer,
+                        config: CONFIG,
+                        onProductSelect: (data) => this.handleProductSelect(data),
+                        onQuoteRequest: (data) => this.handleQuoteRequest(data),
+                        onWishlistAdd: (data) => this.handleWishlistAdd(data),
+                        onAnalytics: (data) => this.trackAnalytics(data)
+                    });
+                    
+                    // Hide the original content
+                    document.querySelector('.controls').style.display = 'none';
+                    document.querySelector('.products-grid').style.display = 'none';
+                }
+            }
+            
+            initializeIframeCommunication() {
+                // Enhanced API call function with Google Cloud integration
+                this.makeApiCall = async (endpoint, method = 'GET', data = null) => {
+                    // Try API Gateway first, then fallback to backend
+                    const urls = [CONFIG.API_GATEWAY_URL, CONFIG.BACKEND_URL];
+                    
+                    for (const baseUrl of urls) {
+                        try {
+                            const url = `${baseUrl}${endpoint}`;
+                            const options = {
+                                method: method,
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'X-Wix-Site-Id': CONFIG.wixSiteId,
+                                    'X-Wix-Client-Id': CONFIG.wixClientId,
+                                    'X-Project-ID': CONFIG.PROJECT_ID,
+                                    'X-Session-Id': this.sessionId
+                                }
+                            };
+                            
+                            if (data && (method === 'POST' || method === 'PUT')) {
+                                options.body = JSON.stringify(data);
+                            }
+                            
+                            const response = await fetch(url, options);
+                            
+                            if (!response.ok) {
+                                throw new Error(`API call failed: ${response.status}`);
+                            }
+                            
+                            return await response.json();
+                        } catch (error) {
+                            console.warn(`Failed to call ${baseUrl}:`, error);
+                            continue;
+                        }
+                    }
+                    
+                    throw new Error('All API endpoints failed');
+                };
+            }
+            
+            notifyParent(message) {
+                try {
+                    window.parent.postMessage(message, this.parentOrigin);
+                } catch (error) {
+                    console.error('Failed to notify parent:', error);
+                }
+            }
+            
+            handleProductSelect(productData) {
+                this.notifyParent({
+                    type: 'GFE_PRODUCT_SELECTED',
+                    data: productData,
+                    sessionId: this.sessionId
+                });
+            }
+            
+            handleQuoteRequest(quoteData) {
+                this.notifyParent({
+                    type: 'GFE_QUOTE_REQUEST',
+                    data: quoteData,
+                    sessionId: this.sessionId
+                });
+            }
+            
+            handleWishlistAdd(wishlistData) {
+                this.notifyParent({
+                    type: 'GFE_WISHLIST_ADD',
+                    data: wishlistData,
+                    sessionId: this.sessionId
+                });
+            }
+            
+            trackAnalytics(analyticsData) {
+                this.notifyParent({
+                    type: 'GFE_ANALYTICS_EVENT',
+                    event: analyticsData.event,
+                    data: analyticsData.data,
+                    sessionId: this.sessionId
+                });
+            }
+            
+            updateConfiguration(config) {
+                Object.assign(CONFIG, config);
+                console.log('📋 Configuration updated:', CONFIG);
+            }
+            
+            updateUserData(userData) {
+                this.userData = userData;
+                console.log('👤 User data updated:', userData);
+            }
+            
+            applyExternalFilter(filter) {
+                // Apply filter from parent component
+                if (filter.category) {
+                    document.getElementById('categoryFilter').value = filter.category;
+                }
+                if (filter.material) {
+                    document.getElementById('materialFilter').value = filter.material;
+                }
+                if (filter.search) {
+                    document.getElementById('searchInput').value = filter.search;
+                }
+                applyFilters();
+            }
+            
+            respondToHealthCheck() {
+                this.notifyParent({
+                    type: 'GFE_HEALTH_RESPONSE',
+                    status: 'healthy',
+                    timestamp: Date.now(),
+                    sessionId: this.sessionId,
+                    reactComponentsLoaded: this.reactComponentsLoaded,
+                    productsLoaded: allProducts.length > 0
+                });
+            }
+        }
+        
+        // Initialize the iframe communication system
+        const gfeIframe = new GFEProductBrowserIframe();
+        
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            setupEventListeners();
+            loadProducts();
+        });
+
+        // Setup event listeners
+        function setupEventListeners() {
+            document.getElementById('searchInput').addEventListener('input', debounce(applyFilters, 300));
+            document.getElementById('categoryFilter').addEventListener('change', applyFilters);
+            document.getElementById('materialFilter').addEventListener('change', applyFilters);
+            document.getElementById('priceFilter').addEventListener('change', applyFilters);
+            document.getElementById('sortFilter').addEventListener('change', applyFilters);
+        }
+
+        // Debounce function
+        function debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        }
+
+        // Load products
+        async function loadProducts() {
+            showLoading();
+            
+            try {
+                // Try to load from API
+                const response = await makeApiCall('/api/products');
+                
+                if (response.success && response.products) {
+                    allProducts = response.products;
+                } else {
+                    // Fallback to sample data
+                    allProducts = sampleProducts;
+                }
+                
+                applyFilters();
+            } catch (error) {
+                console.error('Error loading products:', error);
+                // Use sample data as fallback
+                allProducts = sampleProducts;
+                applyFilters();
+            }
+        }
+
+        // Enhanced API call with Google Cloud integration
+        async function makeApiCall(endpoint, method = 'GET', data = null) {
+            return await gfeIframe.makeApiCall(endpoint, method, data);
+        }
+
+        // Apply filters
+        function applyFilters() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const category = document.getElementById('categoryFilter').value;
+            const material = document.getElementById('materialFilter').value;
+            const priceRange = document.getElementById('priceFilter').value;
+            const sortBy = document.getElementById('sortFilter').value;
+
+            // Filter products
+            filteredProducts = allProducts.filter(product => {
+                // Search filter
+                if (searchTerm && !product.name.toLowerCase().includes(searchTerm) && 
+                    !product.description.toLowerCase().includes(searchTerm)) {
+                    return false;
+                }
+
+                // Category filter
+                if (category && product.category !== category) {
+                    return false;
+                }
+
+                // Material filter
+                if (material && product.material !== material) {
+                    return false;
+                }
+
+                // Price filter
+                if (priceRange) {
+                    const [min, max] = priceRange.split('-').map(p => p.replace('+', ''));
+                    const minPrice = parseInt(min);
+                    const maxPrice = max ? parseInt(max) : Infinity;
+                    
+                    if (product.price < minPrice || product.price > maxPrice) {
+                        return false;
+                    }
+                }
+
+                return true;
+            });
+
+            // Sort products
+            filteredProducts.sort((a, b) => {
+                switch (sortBy) {
+                    case 'price-low':
+                        return a.price - b.price;
+                    case 'price-high':
+                        return b.price - a.price;
+                    case 'rating':
+                        return b.rating - a.rating;
+                    case 'newest':
+                        return b.id - a.id;
+                    default:
+                        return a.name.localeCompare(b.name);
+                }
+            });
+
+            // Update active filters
+            updateActiveFilters();
+
+            // Reset to first page
+            currentPage = 1;
+            totalPages = Math.ceil(filteredProducts.length / CONFIG.productsPerPage);
+
+            // Display products
+            displayProducts();
+            updatePagination();
+            hideLoading();
+        }
+
+        // Update active filters display
+        function updateActiveFilters() {
+            const filterTags = document.getElementById('filterTags');
+            filterTags.innerHTML = '';
+
+            const filters = [
+                { key: 'search', value: document.getElementById('searchInput').value, label: 'Search' },
+                { key: 'category', value: document.getElementById('categoryFilter').value, label: 'Category' },
+                { key: 'material', value: document.getElementById('materialFilter').value, label: 'Material' },
+                { key: 'price', value: document.getElementById('priceFilter').value, label: 'Price' }
+            ];
+
+            filters.forEach(filter => {
+                if (filter.value) {
+                    const tag = document.createElement('div');
+                    tag.className = 'filter-tag';
+                    tag.innerHTML = `
+                        ${filter.label}: ${filter.value}
+                        <span class="remove" onclick="removeFilter('${filter.key}')">×</span>
+                    `;
+                    filterTags.appendChild(tag);
+                }
+            });
+        }
+
+        // Remove filter
+        function removeFilter(filterKey) {
+            switch (filterKey) {
+                case 'search':
+                    document.getElementById('searchInput').value = '';
+                    break;
+                case 'category':
+                    document.getElementById('categoryFilter').value = '';
+                    break;
+                case 'material':
+                    document.getElementById('materialFilter').value = '';
+                    break;
+                case 'price':
+                    document.getElementById('priceFilter').value = '';
+                    break;
+            }
+            applyFilters();
+        }
+
+        // Display products
+        function displayProducts() {
+            const grid = document.getElementById('productsGrid');
+            const noProducts = document.getElementById('noProducts');
+
+            if (filteredProducts.length === 0) {
+                grid.style.display = 'none';
+                noProducts.style.display = 'block';
+                return;
+            }
+
+            grid.style.display = 'grid';
+            noProducts.style.display = 'none';
+
+            const startIndex = (currentPage - 1) * CONFIG.productsPerPage;
+            const endIndex = startIndex + CONFIG.productsPerPage;
+            const pageProducts = filteredProducts.slice(startIndex, endIndex);
+
+            grid.innerHTML = pageProducts.map(product => createProductCard(product)).join('');
+        }
+
+        // Create product card
+        function createProductCard(product) {
+            return `
+                <div class="product-card" onclick="openProductModal(${product.id})">
+                    <div class="product-image">
+                        ${product.image ? 
+                            `<img src="${product.image}" alt="${product.name}">` : 
+                            `<i class="fas fa-window-maximize placeholder"></i>`
+                        }
+                        ${product.badge ? `<div class="product-badge">${product.badge}</div>` : ''}
+                    </div>
+                    <div class="product-content">
+                        <h3 class="product-title">${product.name}</h3>
+                        <p class="product-description">${product.description}</p>
+                        <div class="product-specs">
+                            ${Object.entries(product.specs || {}).slice(0, 4).map(([key, value]) => `
+                                <div class="spec-item">
+                                    <span class="spec-label">${key}:</span>
+                                    <span class="spec-value">${value}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                        <div class="product-price">$${product.price.toLocaleString()}</div>
+                        <div class="product-actions">
+                            <button class="btn btn-primary" onclick="event.stopPropagation(); requestQuote(${product.id})">
+                                <i class="fas fa-calculator"></i>
+                                Get Quote
+                            </button>
+                            <button class="btn btn-secondary" onclick="event.stopPropagation(); viewDetails(${product.id})">
+                                <i class="fas fa-info-circle"></i>
+                                Details
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Open product modal (removed duplicate - see enhanced version below)
+
+        // Close modal
+        function closeModal() {
+            document.getElementById('productModal').style.display = 'none';
+        }
+
+        // Request quote
+        function requestQuote(productId) {
+            const product = allProducts.find(p => p.id === productId);
+            if (!product) return;
+
+            // Track event through GFE iframe system
+            gfeIframe.trackAnalytics({
+                event: 'quote_requested',
+                data: {
+                    product_id: product.id,
+                    product_name: product.name,
+                    product_price: product.price,
+                    category: product.category
+                }
+            });
+
+            // Send quote request through iframe communication
+            gfeIframe.handleQuoteRequest(product);
+        }
+
+        // View details
+        function viewDetails(productId) {
+            openProductModal(productId);
+        }
+
+        // Add to wishlist
+        function addToWishlist(productId) {
+            const product = allProducts.find(p => p.id === productId);
+            if (!product) return;
+
+            // Track event through GFE iframe system
+            gfeIframe.trackAnalytics({
+                event: 'add_to_wishlist',
+                data: {
+                    product_id: product.id,
+                    product_name: product.name,
+                    category: product.category
+                }
+            });
+
+            // Send wishlist add through iframe communication
+            gfeIframe.handleWishlistAdd(product);
+        }
+
+        // Pagination
+        function changePage(direction) {
+            const newPage = currentPage + direction;
+            if (newPage >= 1 && newPage <= totalPages) {
+                currentPage = newPage;
+                displayProducts();
+                updatePagination();
+            }
+        }
+
+        // Update pagination
+        function updatePagination() {
+            document.getElementById('prevBtn').disabled = currentPage === 1;
+            document.getElementById('nextBtn').disabled = currentPage === totalPages;
+            document.getElementById('paginationInfo').textContent = `Page ${currentPage} of ${totalPages}`;
+        }
+
+        // Show/hide loading
+        function showLoading() {
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('productsGrid').style.display = 'none';
+            document.getElementById('noProducts').style.display = 'none';
+        }
+
+        function hideLoading() {
+            document.getElementById('loading').style.display = 'none';
+        }
+
+        // Close modal when clicking outside
+        window.addEventListener('click', function(event) {
+            const modal = document.getElementById('productModal');
+            if (event.target === modal) {
+                closeModal();
+            }
+        });
+
+        // Override the original API call with enhanced version
+        window.makeApiCall = gfeIframe.makeApiCall;
+        
+        // Product selection handler
+        function selectProduct(productId) {
+            const product = allProducts.find(p => p.id === productId);
+            if (product) {
+                gfeIframe.handleProductSelect(product);
+            }
+        }
+        
+        // Enhanced product card click handler
+        function openProductModal(productId) {
+            const product = allProducts.find(p => p.id === productId);
+            if (!product) return;
+            
+            // Track product view
+            gfeIframe.trackAnalytics({
+                event: 'product_viewed',
+                data: {
+                    product_id: product.id,
+                    product_name: product.name,
+                    category: product.category
+                }
+            });
+            
+            // Select product for parent communication
+            selectProduct(productId);
+
+            document.getElementById('modalTitle').textContent = product.name;
+            document.getElementById('modalBody').innerHTML = `
+                <div class="product-image" style="margin-bottom: 1.5rem;">
+                    ${product.image ? 
+                        `<img src="${product.image}" alt="${product.name}">` : 
+                        `<i class="fas fa-window-maximize placeholder"></i>`
+                    }
+                </div>
+                <p style="margin-bottom: 1.5rem; color: #a0a9b8; line-height: 1.6;">${product.description}</p>
+                <div class="product-specs" style="margin-bottom: 1.5rem;">
+                    ${Object.entries(product.specs || {}).map(([key, value]) => `
+                        <div class="spec-item">
+                            <span class="spec-label">${key}:</span>
+                            <span class="spec-value">${value}</span>
+                        </div>
+                    `).join('')}
+                </div>
+                <div class="product-price" style="margin-bottom: 1.5rem;">$${product.price.toLocaleString()}</div>
+                <div class="product-actions">
+                    <button class="btn btn-primary" onclick="requestQuote(${product.id})">
+                        <i class="fas fa-calculator"></i>
+                        Get Quote
+                    </button>
+                    <button class="btn btn-secondary" onclick="addToWishlist(${product.id})">
+                        <i class="fas fa-heart"></i>
+                        Add to Wishlist
+                    </button>
+                </div>
+            `;
+
+            document.getElementById('productModal').style.display = 'block';
+        }
+    </script>
+</body>
+</html>
+

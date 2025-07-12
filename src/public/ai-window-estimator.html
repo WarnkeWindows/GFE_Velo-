@@ -1,0 +1,969 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Window Estimator - Good Faith Exteriors</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #1a2332 0%, #0f1419 100%);
+            color: #ffffff;
+            min-height: 100vh;
+            padding: 1rem;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        .logo {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 1rem;
+            background: linear-gradient(135deg, #d4af37 0%, #f4d03f 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 10px 30px rgba(212, 175, 55, 0.3);
+        }
+
+        .logo i {
+            font-size: 2rem;
+            color: #1a2332;
+        }
+
+        .title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(135deg, #d4af37 0%, #f4d03f 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .subtitle {
+            font-size: 1.1rem;
+            color: #a0a9b8;
+            margin-bottom: 2rem;
+        }
+
+        .estimator-container {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 20px;
+            padding: 2rem;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .form-section {
+            margin-bottom: 2rem;
+        }
+
+        .section-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: #d4af37;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-label {
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+            color: #e1e5e9;
+        }
+
+        .form-input, .form-select {
+            padding: 0.75rem 1rem;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            color: #ffffff;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .form-input:focus, .form-select:focus {
+            outline: none;
+            border-color: #d4af37;
+            box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.2);
+        }
+
+        .form-input::placeholder {
+            color: #a0a9b8;
+        }
+
+        .windows-section {
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 15px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .window-item {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            position: relative;
+        }
+
+        .window-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .window-title {
+            font-weight: 600;
+            color: #d4af37;
+        }
+
+        .remove-window {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+
+        .remove-window:hover {
+            background: #c0392b;
+            transform: scale(1.1);
+        }
+
+        .window-inputs {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+
+        .add-window-btn {
+            background: linear-gradient(135deg, #d4af37 0%, #f4d03f 100%);
+            color: #1a2332;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .add-window-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(212, 175, 55, 0.3);
+        }
+
+        .estimate-btn {
+            background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%);
+            color: white;
+            border: none;
+            padding: 1rem 2rem;
+            border-radius: 15px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 100%;
+            margin-top: 1rem;
+        }
+
+        .estimate-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 15px 30px rgba(46, 204, 113, 0.3);
+        }
+
+        .estimate-btn:disabled {
+            background: #7f8c8d;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .results-section {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            padding: 2rem;
+            margin-top: 2rem;
+            display: none;
+        }
+
+        .results-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .result-card {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 1.5rem;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .result-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #d4af37;
+            margin-bottom: 0.5rem;
+        }
+
+        .result-label {
+            color: #a0a9b8;
+            font-size: 0.9rem;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 2rem;
+        }
+
+        .spinner {
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top: 3px solid #d4af37;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error-message {
+            background: rgba(231, 76, 60, 0.2);
+            border: 1px solid #e74c3c;
+            color: #e74c3c;
+            padding: 1rem;
+            border-radius: 10px;
+            margin-top: 1rem;
+            display: none;
+        }
+
+        .success-message {
+            background: rgba(46, 204, 113, 0.2);
+            border: 1px solid #2ecc71;
+            color: #2ecc71;
+            padding: 1rem;
+            border-radius: 10px;
+            margin-top: 1rem;
+            display: none;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+            
+            .title {
+                font-size: 2rem;
+            }
+            
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .window-inputs {
+                grid-template-columns: 1fr;
+            }
+            
+            .results-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo">
+                <i class="fas fa-calculator"></i>
+            </div>
+            <h1 class="title">AI Window Estimator</h1>
+            <p class="subtitle">Get an instant, accurate estimate for your window replacement project</p>
+        </div>
+
+        <div class="estimator-container">
+            <form id="estimatorForm">
+                <div class="form-section">
+                    <h3 class="section-title">
+                        <i class="fas fa-info-circle"></i>
+                        Project Information
+                    </h3>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label class="form-label">Project Type</label>
+                            <select class="form-select" id="projectType" required>
+                                <option value="">Select project type</option>
+                                <option value="replacement">Window Replacement</option>
+                                <option value="new_construction">New Construction</option>
+                                <option value="renovation">Renovation</option>
+                                <option value="repair">Window Repair</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Property Type</label>
+                            <select class="form-select" id="propertyType" required>
+                                <option value="">Select property type</option>
+                                <option value="single_family">Single Family Home</option>
+                                <option value="townhouse">Townhouse</option>
+                                <option value="condo">Condominium</option>
+                                <option value="commercial">Commercial</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Timeline</label>
+                            <select class="form-select" id="timeline">
+                                <option value="">Select timeline</option>
+                                <option value="asap">ASAP</option>
+                                <option value="1_month">Within 1 Month</option>
+                                <option value="3_months">Within 3 Months</option>
+                                <option value="6_months">Within 6 Months</option>
+                                <option value="planning">Just Planning</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <h3 class="section-title">
+                        <i class="fas fa-home"></i>
+                        Windows
+                    </h3>
+                    <div class="windows-section">
+                        <button type="button" class="add-window-btn" onclick="addWindow()">
+                            <i class="fas fa-plus"></i>
+                            Add Window
+                        </button>
+                        <div id="windowsContainer">
+                            <!-- Windows will be added dynamically -->
+                        </div>
+                    </div>
+                </div>
+
+                <button type="submit" class="estimate-btn" id="estimateBtn">
+                    <i class="fas fa-calculator"></i>
+                    Get AI Estimate
+                </button>
+            </form>
+
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <p>AI is calculating your estimate...</p>
+            </div>
+
+            <div class="error-message" id="errorMessage"></div>
+            <div class="success-message" id="successMessage"></div>
+
+            <div class="results-section" id="resultsSection">
+                <h3 class="section-title">
+                    <i class="fas fa-chart-line"></i>
+                    Your Estimate
+                </h3>
+                <div class="results-grid">
+                    <div class="result-card">
+                        <div class="result-value" id="totalCost">$0</div>
+                        <div class="result-label">Total Cost</div>
+                    </div>
+                    <div class="result-card">
+                        <div class="result-value" id="materialCost">$0</div>
+                        <div class="result-label">Materials</div>
+                    </div>
+                    <div class="result-card">
+                        <div class="result-value" id="laborCost">$0</div>
+                        <div class="result-label">Labor</div>
+                    </div>
+                    <div class="result-card">
+                        <div class="result-value" id="windowCount">0</div>
+                        <div class="result-label">Windows</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Configuration matching Google Cloud backend containers
+        const CONFIG = {
+            // Google Cloud Backend Services
+            API_GATEWAY_URL: 'https://gfe-api-gateway-aonuaov3.uc.gateway.dev',
+            BACKEND_URL: 'https://gfe-backend-837326026335.us-central1.run.app',
+            PROJECT_ID: 'good-faith-exteriors',
+            PROJECT_NUMBER: '837326026335',
+            
+            // Cloud Run Services
+            CLOUD_SERVICES: {
+                KNOWLEDGE_BASE: 'https://knowledge-base-webhook-837326026335.us-central1.run.app',
+                ANNOTATE_HTTP: 'https://annotate-http-837326026335.us-central1.run.app',
+                VISION_PROCESSING: 'https://annotate-gcs-837326026335.us-central1.run.app'
+            },
+            
+            // Google Cloud Storage Buckets
+            STORAGE_BUCKETS: {
+                WIDGETS: 'goodfaithexteriors-widgets',
+                STATIC_PAGES: 'gfe-static-pages',
+                IMAGE_ANALYSIS: 'image-analysis-library',
+                VISION_INPUT: 'vision-input-837326026335'
+            },
+            
+            // Wix Configuration
+            wixSiteId: '5ec64f41-3f5e-4ba1-b9fc-018d3a8681a4',
+            wixClientId: '11c09244-492f-4332-9983-e768db711388',
+            
+            // React Components URLs (from Google Cloud Storage)
+            REACT_COMPONENTS: {
+                WINDOW_ESTIMATOR: 'https://goodfaithexteriors-widgets.storage.googleapis.com/WindowEstimator/WindowEstimator.js',
+                PRODUCT_BROWSER: 'https://goodfaithexteriors-widgets.storage.googleapis.com/ProductBrowser/ProductBrowser.js',
+                TRAINING_COMPONENTS: 'https://goodfaithexteriors-widgets.storage.googleapis.com/TrainingComponents/TrainingComponents.js',
+                SHARED_SERVICES: 'https://goodfaithexteriors-widgets.storage.googleapis.com/shared/services/',
+                SHARED_HOOKS: 'https://goodfaithexteriors-widgets.storage.googleapis.com/shared/hooks/'
+            }
+        };
+
+        let windowCount = 0;
+
+        // Add window function
+        function addWindow() {
+            windowCount++;
+            const windowsContainer = document.getElementById('windowsContainer');
+            
+            const windowDiv = document.createElement('div');
+            windowDiv.className = 'window-item';
+            windowDiv.id = `window-${windowCount}`;
+            
+            windowDiv.innerHTML = `
+                <div class="window-header">
+                    <span class="window-title">Window ${windowCount}</span>
+                    <button type="button" class="remove-window" onclick="removeWindow(${windowCount})">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="window-inputs">
+                    <div class="form-group">
+                        <label class="form-label">Width (inches)</label>
+                        <input type="number" class="form-input" name="width" placeholder="36" min="12" max="120" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Height (inches)</label>
+                        <input type="number" class="form-input" name="height" placeholder="48" min="12" max="120" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Window Type</label>
+                        <select class="form-select" name="type" required>
+                            <option value="">Select type</option>
+                            <option value="single_hung">Single Hung</option>
+                            <option value="double_hung">Double Hung</option>
+                            <option value="casement">Casement</option>
+                            <option value="sliding">Sliding</option>
+                            <option value="bay">Bay Window</option>
+                            <option value="bow">Bow Window</option>
+                            <option value="picture">Picture Window</option>
+                            <option value="awning">Awning</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Material</label>
+                        <select class="form-select" name="material" required>
+                            <option value="">Select material</option>
+                            <option value="vinyl">Vinyl</option>
+                            <option value="wood">Wood</option>
+                            <option value="aluminum">Aluminum</option>
+                            <option value="fiberglass">Fiberglass</option>
+                            <option value="composite">Composite</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Quality Level</label>
+                        <select class="form-select" name="quality" required>
+                            <option value="">Select quality</option>
+                            <option value="standard">Standard</option>
+                            <option value="premium">Premium</option>
+                            <option value="luxury">Luxury</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Location</label>
+                        <select class="form-select" name="location">
+                            <option value="">Select location</option>
+                            <option value="living_room">Living Room</option>
+                            <option value="bedroom">Bedroom</option>
+                            <option value="kitchen">Kitchen</option>
+                            <option value="bathroom">Bathroom</option>
+                            <option value="dining_room">Dining Room</option>
+                            <option value="basement">Basement</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+                </div>
+            `;
+            
+            windowsContainer.appendChild(windowDiv);
+        }
+
+        // Remove window function
+        function removeWindow(id) {
+            const windowElement = document.getElementById(`window-${id}`);
+            if (windowElement) {
+                windowElement.remove();
+            }
+        }
+
+        // Format currency
+        function formatCurrency(amount) {
+            return new Intl.NumberFormat('en-US', {
+                style: 'currency',
+                currency: 'USD',
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 0
+            }).format(amount);
+        }
+
+        // Show/hide elements
+        function showElement(id) {
+            document.getElementById(id).style.display = 'block';
+        }
+
+        function hideElement(id) {
+            document.getElementById(id).style.display = 'none';
+        }
+
+        // Show error message
+        function showError(message) {
+            const errorElement = document.getElementById('errorMessage');
+            errorElement.textContent = message;
+            showElement('errorMessage');
+            setTimeout(() => hideElement('errorMessage'), 5000);
+        }
+
+        // Show success message
+        function showSuccess(message) {
+            const successElement = document.getElementById('successMessage');
+            successElement.textContent = message;
+            showElement('successMessage');
+            setTimeout(() => hideElement('successMessage'), 5000);
+        }
+
+        // Collect window data
+        function collectWindowData() {
+            const windows = [];
+            const windowElements = document.querySelectorAll('.window-item');
+            
+            windowElements.forEach(windowElement => {
+                const inputs = windowElement.querySelectorAll('input, select');
+                const windowData = {};
+                
+                inputs.forEach(input => {
+                    if (input.name && input.value) {
+                        windowData[input.name] = input.value;
+                    }
+                });
+                
+                if (Object.keys(windowData).length > 0) {
+                    windows.push(windowData);
+                }
+            });
+            
+            return windows;
+        }
+
+        // Make API call - Enhanced with fallback endpoints
+        async function makeApiCall(endpoint, method = 'GET', data = null) {
+            const urls = [CONFIG.API_GATEWAY_URL, CONFIG.BACKEND_URL];
+            
+            for (const baseUrl of urls) {
+                try {
+                    const url = `${baseUrl}${endpoint}`;
+                    const options = {
+                        method: method,
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-Wix-Site-Id': CONFIG.wixSiteId,
+                            'X-Wix-Client-Id': CONFIG.wixClientId,
+                            'X-Project-ID': CONFIG.PROJECT_ID
+                        }
+                    };
+                    
+                    if (data && (method === 'POST' || method === 'PUT')) {
+                        options.body = JSON.stringify(data);
+                    }
+                    
+                    const response = await fetch(url, options);
+                    
+                    if (!response.ok) {
+                        throw new Error(`API call failed: ${response.status}`);
+                    }
+                    
+                    return await response.json();
+                } catch (error) {
+                    console.warn(`Failed to call ${baseUrl}:`, error);
+                    continue;
+                }
+            }
+            
+            throw new Error('All API endpoints failed');
+        }
+
+        // Handle form submission
+        document.getElementById('estimatorForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            // Collect form data
+            const formData = new FormData(this);
+            const windows = collectWindowData();
+            
+            if (windows.length === 0) {
+                showError('Please add at least one window to get an estimate.');
+                return;
+            }
+            
+            const estimationData = {
+                projectType: formData.get('projectType') || document.getElementById('projectType').value,
+                propertyType: formData.get('propertyType') || document.getElementById('propertyType').value,
+                timeline: formData.get('timeline') || document.getElementById('timeline').value,
+                windows: windows
+            };
+            
+            // Show loading
+            showElement('loading');
+            hideElement('resultsSection');
+            hideElement('errorMessage');
+            hideElement('successMessage');
+            
+            const estimateBtn = document.getElementById('estimateBtn');
+            estimateBtn.disabled = true;
+            
+            try {
+                // Use enhanced estimation with Google Cloud integration
+                const response = await enhancedEstimation(estimationData);
+                
+                if (response.success && response.estimation) {
+                    // Display results
+                    document.getElementById('totalCost').textContent = formatCurrency(response.estimation.totalCost);
+                    document.getElementById('materialCost').textContent = formatCurrency(response.estimation.materialCost);
+                    document.getElementById('laborCost').textContent = formatCurrency(response.estimation.laborCost);
+                    document.getElementById('windowCount').textContent = windows.length;
+                    
+                    showElement('resultsSection');
+                    showSuccess('Estimate generated successfully!');
+                    
+                    // Track event
+                    if (typeof gtag !== 'undefined') {
+                        gtag('event', 'estimate_generated', {
+                            'event_category': 'AI Estimator',
+                            'event_label': estimationData.projectType,
+                            'value': response.estimation.totalCost
+                        });
+                    }
+                } else {
+                    throw new Error(response.error || 'Failed to generate estimate');
+                }
+            } catch (error) {
+                console.error('Estimation error:', error);
+                showError('Failed to generate estimate. Please try again.');
+            } finally {
+                hideElement('loading');
+                estimateBtn.disabled = false;
+            }
+        });
+
+        // Initialize with one window
+        document.addEventListener('DOMContentLoaded', function() {
+            addWindow();
+        });
+
+        // GFE Iframe Communication System
+        class GFEWindowEstimatorIframe {
+            constructor() {
+                this.sessionId = `estimator_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+                this.parentOrigin = '*';
+                this.reactComponentsLoaded = false;
+                this.init();
+            }
+            
+            async init() {
+                console.log('🧮 GFE Window Estimator iframe initializing...');
+                
+                // Setup parent communication
+                this.setupParentCommunication();
+                
+                // Load React components from Google Cloud Storage
+                await this.loadReactComponents();
+                
+                // Initialize iframe communication
+                this.initializeIframeCommunication();
+                
+                // Notify parent that component is ready
+                this.notifyParent({
+                    type: 'GFE_COMPONENT_READY',
+                    source: 'ai-window-estimator',
+                    sessionId: this.sessionId,
+                    capabilities: ['window_estimation', 'pricing', 'lead_capture', 'ai_analysis']
+                });
+                
+                console.log('✅ GFE Window Estimator iframe ready');
+            }
+            
+            setupParentCommunication() {
+                window.addEventListener('message', (event) => {
+                    if (event.data && event.data.type) {
+                        this.handleParentMessage(event.data);
+                    }
+                });
+            }
+            
+            handleParentMessage(message) {
+                switch (message.type) {
+                    case 'GFE_CONFIG_UPDATE':
+                        console.log('📋 Config update received:', message.config);
+                        this.updateConfiguration(message.config);
+                        break;
+                    case 'GFE_HEALTH_CHECK':
+                        this.respondToHealthCheck();
+                        break;
+                    case 'GFE_USER_DATA':
+                        this.updateUserData(message.userData);
+                        break;
+                }
+            }
+            
+            async loadReactComponents() {
+                try {
+                    // Load React components from Google Cloud Storage
+                    const componentScript = document.createElement('script');
+                    componentScript.src = CONFIG.REACT_COMPONENTS.WINDOW_ESTIMATOR;
+                    componentScript.onload = () => {
+                        console.log('✅ React WindowEstimator component loaded');
+                        this.reactComponentsLoaded = true;
+                        this.initializeReactComponent();
+                    };
+                    componentScript.onerror = () => {
+                        console.warn('⚠️ Failed to load React component, using fallback');
+                        this.reactComponentsLoaded = false;
+                    };
+                    document.head.appendChild(componentScript);
+                } catch (error) {
+                    console.error('❌ Error loading React components:', error);
+                    this.reactComponentsLoaded = false;
+                }
+            }
+            
+            initializeReactComponent() {
+                // If React components are loaded, initialize them
+                if (this.reactComponentsLoaded && window.WindowEstimator) {
+                    const estimatorContainer = document.getElementById('estimatorForm').parentElement;
+                    
+                    // Replace the form with React component
+                    const reactContainer = document.createElement('div');
+                    reactContainer.id = 'react-window-estimator';
+                    estimatorContainer.appendChild(reactContainer);
+                    
+                    // Initialize React component
+                    window.WindowEstimator.init({
+                        container: reactContainer,
+                        config: CONFIG,
+                        onEstimate: (data) => this.handleEstimate(data),
+                        onLeadCapture: (data) => this.handleLeadCapture(data),
+                        onAnalytics: (data) => this.trackAnalytics(data)
+                    });
+                    
+                    // Hide the original form
+                    document.getElementById('estimatorForm').style.display = 'none';
+                }
+            }
+            
+            initializeIframeCommunication() {
+                // Enhanced API call function with Google Cloud integration
+                this.makeApiCall = async (endpoint, method = 'GET', data = null) => {
+                    // Try API Gateway first, then fallback to backend
+                    const urls = [CONFIG.API_GATEWAY_URL, CONFIG.BACKEND_URL];
+                    
+                    for (const baseUrl of urls) {
+                        try {
+                            const url = `${baseUrl}${endpoint}`;
+                            const options = {
+                                method: method,
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'X-Wix-Site-Id': CONFIG.wixSiteId,
+                                    'X-Wix-Client-Id': CONFIG.wixClientId,
+                                    'X-Project-ID': CONFIG.PROJECT_ID,
+                                    'X-Session-Id': this.sessionId
+                                }
+                            };
+                            
+                            if (data && (method === 'POST' || method === 'PUT')) {
+                                options.body = JSON.stringify(data);
+                            }
+                            
+                            const response = await fetch(url, options);
+                            
+                            if (!response.ok) {
+                                throw new Error(`API call failed: ${response.status}`);
+                            }
+                            
+                            return await response.json();
+                        } catch (error) {
+                            console.warn(`Failed to call ${baseUrl}:`, error);
+                            continue;
+                        }
+                    }
+                    
+                    throw new Error('All API endpoints failed');
+                };
+            }
+            
+            notifyParent(message) {
+                try {
+                    window.parent.postMessage(message, this.parentOrigin);
+                } catch (error) {
+                    console.error('Failed to notify parent:', error);
+                }
+            }
+            
+            handleEstimate(estimateData) {
+                this.notifyParent({
+                    type: 'GFE_ESTIMATE_GENERATED',
+                    data: estimateData,
+                    sessionId: this.sessionId
+                });
+            }
+            
+            handleLeadCapture(leadData) {
+                this.notifyParent({
+                    type: 'GFE_LEAD_CAPTURED',
+                    data: leadData,
+                    sessionId: this.sessionId
+                });
+            }
+            
+            trackAnalytics(analyticsData) {
+                this.notifyParent({
+                    type: 'GFE_ANALYTICS_EVENT',
+                    event: analyticsData.event,
+                    data: analyticsData.data,
+                    sessionId: this.sessionId
+                });
+            }
+            
+            updateConfiguration(config) {
+                Object.assign(CONFIG, config);
+                console.log('📋 Configuration updated:', CONFIG);
+            }
+            
+            updateUserData(userData) {
+                this.userData = userData;
+                console.log('👤 User data updated:', userData);
+            }
+            
+            respondToHealthCheck() {
+                this.notifyParent({
+                    type: 'GFE_HEALTH_RESPONSE',
+                    status: 'healthy',
+                    timestamp: Date.now(),
+                    sessionId: this.sessionId,
+                    reactComponentsLoaded: this.reactComponentsLoaded
+                });
+            }
+        }
+        
+        // Initialize the iframe communication system
+        const gfeIframe = new GFEWindowEstimatorIframe();
+        
+        // Enhanced estimation function with Google Cloud integration
+        async function enhancedEstimation(estimationData) {
+            try {
+                // Send to Google Cloud AI services
+                const response = await gfeIframe.makeApiCall('/api/ai/estimate', 'POST', {
+                    ...estimationData,
+                    sessionId: gfeIframe.sessionId,
+                    source: 'ai-window-estimator-iframe'
+                });
+                
+                if (response.success) {
+                    // Track successful estimation
+                    gfeIframe.trackAnalytics({
+                        event: 'estimation_success',
+                        data: {
+                            projectType: estimationData.projectType,
+                            windowCount: estimationData.windows.length,
+                            totalCost: response.estimation.totalCost
+                        }
+                    });
+                    
+                    return response;
+                } else {
+                    throw new Error(response.error || 'Estimation failed');
+                }
+            } catch (error) {
+                console.error('Enhanced estimation error:', error);
+                
+                // Track estimation error
+                gfeIframe.trackAnalytics({
+                    event: 'estimation_error',
+                    data: {
+                        error: error.message,
+                        estimationData: estimationData
+                    }
+                });
+                
+                throw error;
+            }
+        }
+        
+        // Override the original API call with enhanced version
+        window.makeApiCall = gfeIframe.makeApiCall;
+    </script>
+</body>
+</html>
+

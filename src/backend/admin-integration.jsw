@@ -1,0 +1,142 @@
+import { fetch } from 'wix-fetch';
+import wixSecretsBackend from 'wix-secrets-backend';
+
+const API_BASE_URL = 'https://gfe-api-gateway-aonuaov3.uc.gateway.dev';
+
+// Admin assistant for MCP system management
+export async function callAdminAssistant(prompt, options = {}) {
+  try {
+    const apiKey = await wixSecretsBackend.getSecret('GFE_API_KEY');
+    
+    const response = await fetch(`${API_BASE_URL}/api/claude/admin-assistant`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-API-Key': apiKey,
+        'X-MCP-Source': 'wix-admin'
+      },
+      body: JSON.stringify({
+        prompt,
+        options: {
+          ...options,
+          mcpContext: 'admin_assistant',
+          timestamp: new Date().toISOString()
+        }
+      })
+    });
+    
+    return await response.json();
+  } catch (error) {
+    console.error('Admin Assistant Error:', error);
+    throw error;
+  }
+}
+
+// MCP system analysis
+export async function analyzeSystem(component, analysisType = 'performance') {
+  try {
+    const apiKey = await wixSecretsBackend.getSecret('GFE_API_KEY');
+    
+    const response = await fetch(`${API_BASE_URL}/api/claude/analyze-system`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-API-Key': apiKey,
+        'X-MCP-Source': 'wix-admin'
+      },
+      body: JSON.stringify({
+        component,
+        analysisType,
+        mcpEnhanced: true
+      })
+    });
+    
+    return await response.json();
+  } catch (error) {
+    console.error('System Analysis Error:', error);
+    throw error;
+  }
+}
+
+// MCP configuration generation
+export async function generateConfiguration(configType, requirements = {}) {
+  try {
+    const apiKey = await wixSecretsBackend.getSecret('GFE_API_KEY');
+    
+    const response = await fetch(`${API_BASE_URL}/api/claude/generate-config`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-API-Key': apiKey,
+        'X-MCP-Source': 'wix-admin'
+      },
+      body: JSON.stringify({
+        configType,
+        requirements: {
+          ...requirements,
+          mcpIntegration: true
+        }
+      })
+    });
+    
+    return await response.json();
+  } catch (error) {
+    console.error('Configuration Generation Error:', error);
+    throw error;
+  }
+}
+
+// MCP troubleshooting
+export async function troubleshootIssue(issue, context = {}) {
+  try {
+    const apiKey = await wixSecretsBackend.getSecret('GFE_API_KEY');
+    
+    const response = await fetch(`${API_BASE_URL}/api/claude/troubleshoot`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-API-Key': apiKey,
+        'X-MCP-Source': 'wix-admin'
+      },
+      body: JSON.stringify({
+        issue,
+        context: {
+          ...context,
+          mcpSystem: true,
+          source: 'wix_backend'
+        }
+      })
+    });
+    
+    return await response.json();
+  } catch (error) {
+    console.error('Troubleshooting Error:', error);
+    throw error;
+  }
+}
+
+// MCP code review
+export async function reviewCode(code, reviewType = 'security') {
+  try {
+    const apiKey = await wixSecretsBackend.getSecret('GFE_API_KEY');
+    
+    const response = await fetch(`${API_BASE_URL}/api/claude/review-code`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-API-Key': apiKey,
+        'X-MCP-Source': 'wix-admin'
+      },
+      body: JSON.stringify({
+        code,
+        reviewType,
+        mcpEnhanced: true
+      })
+    });
+    
+    return await response.json();
+  } catch (error) {
+    console.error('Code Review Error:', error);
+    throw error;
+  }
+}

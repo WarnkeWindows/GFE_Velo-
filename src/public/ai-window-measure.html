@@ -1,0 +1,860 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Window Measurement - Good Faith Exteriors</title>
+    
+    <!-- Sentry Error Tracking -->
+    <script src="https://browser.sentry-cdn.com/7.0.0/bundle.min.js" crossorigin="anonymous"></script>
+    <script>
+        Sentry.init({
+            dsn: "https://daf10ccaaf2dcea42bc8ab5340f36027@o4509594994868224.ingest.us.sentry.io/4509595014463489",
+            environment: "production",
+            tracesSampleRate: 1.0
+        });
+    </script>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    
+    <style>
+        :root {
+            --gfe-navy: #1A365D;
+            --gfe-navy-light: #2D3748;
+            --gfe-navy-dark: #1A202C;
+            --gfe-gold: #D4AF37;
+            --gfe-gold-light: #F6E05E;
+            --gfe-gold-dark: #B7791F;
+            --gfe-silver: #C0C0C0;
+            --gfe-silver-light: #E2E8F0;
+            --gfe-silver-dark: #9CA3AF;
+            --gfe-success: #48BB78;
+            --gfe-error: #F56565;
+            --gfe-warning: #ED8936;
+            --gfe-white: #FFFFFF;
+            --gfe-black: #000000;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, var(--gfe-navy) 0%, var(--gfe-navy-light) 100%);
+            color: var(--gfe-white);
+            min-height: 100vh;
+            padding: 1rem;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+        
+        .logo {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 1rem;
+            background: linear-gradient(135deg, var(--gfe-gold) 0%, var(--gfe-gold-light) 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 10px 30px rgba(212, 175, 55, 0.3);
+        }
+        
+        .logo i {
+            font-size: 2rem;
+            color: var(--gfe-navy);
+        }
+        
+        .title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(135deg, var(--gfe-gold) 0%, var(--gfe-gold-light) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .subtitle {
+            font-size: 1.1rem;
+            color: var(--gfe-silver-light);
+            margin-bottom: 2rem;
+        }
+        
+        .measurement-container {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 20px;
+            padding: 2rem;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        }
+        
+        .section-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: var(--gfe-gold);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .measurement-methods {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin: 2rem 0;
+        }
+        
+        .method-card {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 2rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .method-card::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(45deg, transparent, rgba(212, 175, 55, 0.1), transparent);
+            transition: transform 0.5s;
+            transform: rotate(45deg) translate(-100%, -100%);
+        }
+        
+        .method-card:hover::before {
+            transform: rotate(45deg) translate(100%, 100%);
+        }
+        
+        .method-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(212, 175, 55, 0.2);
+        }
+        
+        .method-card.selected {
+            background: rgba(212, 175, 55, 0.2);
+            border: 2px solid var(--gfe-gold);
+            box-shadow: 0 10px 25px rgba(212, 175, 55, 0.3);
+        }
+        
+        .method-card h3 {
+            font-size: 1.2rem;
+            margin-bottom: 0.75rem;
+            color: var(--gfe-gold);
+            position: relative;
+            z-index: 1;
+        }
+        
+        .method-card p {
+            color: var(--gfe-silver-light);
+            margin-bottom: 1rem;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .method-card small {
+            color: var(--gfe-success);
+            font-weight: 500;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .upload-area {
+            border: 2px dashed rgba(255, 255, 255, 0.3);
+            border-radius: 15px;
+            padding: 3rem;
+            text-align: center;
+            margin: 2rem 0;
+            transition: all 0.3s ease;
+            background: rgba(255, 255, 255, 0.03);
+        }
+        
+        .upload-area.dragover {
+            border-color: var(--gfe-gold);
+            background: rgba(212, 175, 55, 0.1);
+            transform: scale(1.02);
+        }
+        
+        .upload-area h3 {
+            color: var(--gfe-gold);
+            margin-bottom: 1rem;
+        }
+        
+        .upload-area p {
+            color: var(--gfe-silver-light);
+            margin-bottom: 1.5rem;
+        }
+        
+        .measurement-button {
+            background: linear-gradient(135deg, var(--gfe-gold) 0%, var(--gfe-gold-light) 100%);
+            color: var(--gfe-navy);
+            border: none;
+            padding: 1rem 2rem;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+            width: 100%;
+            margin-top: 1rem;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+        
+        .measurement-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(212, 175, 55, 0.3);
+        }
+        
+        .measurement-button:disabled {
+            background: var(--gfe-silver-dark);
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .results-section {
+            margin-top: 2rem;
+            padding: 2rem;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            display: none;
+        }
+        
+        .results-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin: 1.5rem 0;
+        }
+        
+        .result-card {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 1.5rem;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .result-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--gfe-gold);
+            margin-bottom: 0.5rem;
+        }
+        
+        .result-label {
+            color: var(--gfe-silver-light);
+            font-size: 0.9rem;
+        }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 2rem;
+        }
+        
+        .spinner {
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top: 3px solid var(--gfe-gold);
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .error-message {
+            background: rgba(245, 101, 101, 0.2);
+            border: 1px solid var(--gfe-error);
+            color: var(--gfe-error);
+            padding: 1rem;
+            border-radius: 10px;
+            margin-top: 1rem;
+            display: none;
+        }
+        
+        .success-message {
+            background: rgba(72, 187, 120, 0.2);
+            border: 1px solid var(--gfe-success);
+            color: var(--gfe-success);
+            padding: 1rem;
+            border-radius: 10px;
+            margin-top: 1rem;
+            display: none;
+        }
+        
+        .preview-image {
+            max-width: 200px;
+            max-height: 200px;
+            border-radius: 10px;
+            margin: 1rem 0;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+            
+            .title {
+                font-size: 2rem;
+            }
+            
+            .measurement-methods {
+                grid-template-columns: 1fr;
+            }
+            
+            .results-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo">
+                <i class="fas fa-ruler-combined"></i>
+            </div>
+            <h1 class="title">AI Window Measurement</h1>
+            <p class="subtitle">Advanced AI-powered window measurement with Google Vision API</p>
+        </div>
+        
+        <div class="measurement-container">
+            <div class="section-title">
+                <i class="fas fa-cog"></i>
+                Measurement Methods
+            </div>
+        
+            <div class="measurement-methods">
+                <div class="method-card" onclick="selectMethod('ai-vision', this)">
+                    <h3><i class="fas fa-robot"></i> AI Vision</h3>
+                    <p>Upload a photo and let AI measure your windows using Google Vision API</p>
+                    <small><i class="fas fa-check-circle"></i> Confidence: 92%</small>
+                </div>
+                
+                <div class="method-card" onclick="selectMethod('post-it', this)">
+                    <h3><i class="fas fa-sticky-note"></i> Post-it Scale</h3>
+                    <p>Use a post-it note for scale reference with AI analysis</p>
+                    <small><i class="fas fa-check-circle"></i> Confidence: 95%</small>
+                </div>
+                
+                <div class="method-card" onclick="selectMethod('manual', this)">
+                    <h3><i class="fas fa-ruler"></i> Manual Input</h3>
+                    <p>Enter measurements manually with validation</p>
+                    <small><i class="fas fa-info-circle"></i> Confidence: 100%</small>
+                </div>
+                
+                <div class="method-card" onclick="selectMethod('photo-analysis', this)">
+                    <h3><i class="fas fa-camera"></i> Photo Analysis</h3>
+                    <p>Advanced photo analysis with multiple references</p>
+                    <small><i class="fas fa-check-circle"></i> Confidence: 88%</small>
+                </div>
+            </div>
+        
+            <div class="upload-area" id="uploadArea">
+                <h3><i class="fas fa-cloud-upload-alt"></i> Upload Window Photo</h3>
+                <p>Drag and drop your window photo here, or click to select</p>
+                <input type="file" id="imageInput" accept="image/*" style="display: none;" onchange="handleImageUpload(event)">
+                <button class="measurement-button" onclick="document.getElementById('imageInput').click()">
+                    <i class="fas fa-image"></i>
+                    Choose Image
+                </button>
+            </div>
+            
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <p>AI is analyzing your window...</p>
+            </div>
+            
+            <div class="error-message" id="errorMessage"></div>
+            <div class="success-message" id="successMessage"></div>
+        
+            <div class="results-section" id="resultsSection">
+                <h3 class="section-title">
+                    <i class="fas fa-chart-line"></i>
+                    Measurement Results
+                </h3>
+                <div class="results-grid">
+                    <div class="result-card">
+                        <div class="result-value" id="widthValue">0"</div>
+                        <div class="result-label">Width</div>
+                    </div>
+                    <div class="result-card">
+                        <div class="result-value" id="heightValue">0"</div>
+                        <div class="result-label">Height</div>
+                    </div>
+                    <div class="result-card">
+                        <div class="result-value" id="confidenceValue">0%</div>
+                        <div class="result-label">Confidence</div>
+                    </div>
+                    <div class="result-card">
+                        <div class="result-value" id="methodValue">-</div>
+                        <div class="result-label">Method</div>
+                    </div>
+                </div>
+                <div id="measurementResults"></div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Configuration matching Google Cloud backend containers
+        const CONFIG = {
+            // Google Cloud Backend Services
+            API_GATEWAY_URL: 'https://gfe-api-gateway-aonuaov3.uc.gateway.dev',
+            BACKEND_URL: 'https://gfe-backend-837326026335.us-central1.run.app',
+            PROJECT_ID: 'good-faith-exteriors',
+            PROJECT_NUMBER: '837326026335',
+            
+            // Cloud Run Services
+            CLOUD_SERVICES: {
+                KNOWLEDGE_BASE: 'https://knowledge-base-webhook-837326026335.us-central1.run.app',
+                ANNOTATE_HTTP: 'https://annotate-http-837326026335.us-central1.run.app',
+                VISION_PROCESSING: 'https://annotate-gcs-837326026335.us-central1.run.app'
+            },
+            
+            // Google Cloud Storage Buckets
+            STORAGE_BUCKETS: {
+                WIDGETS: 'goodfaithexteriors-widgets',
+                STATIC_PAGES: 'gfe-static-pages',
+                IMAGE_ANALYSIS: 'image-analysis-library',
+                VISION_INPUT: 'vision-input-837326026335'
+            },
+            
+            // Wix Configuration
+            wixSiteId: '5ec64f41-3f5e-4ba1-b9fc-018d3a8681a4',
+            wixClientId: '11c09244-492f-4332-9983-e768db711388',
+            
+            // React Components URLs (from Google Cloud Storage)
+            REACT_COMPONENTS: {
+                WINDOW_ESTIMATOR: 'https://goodfaithexteriors-widgets.storage.googleapis.com/WindowEstimator/WindowEstimator.js',
+                PRODUCT_BROWSER: 'https://goodfaithexteriors-widgets.storage.googleapis.com/ProductBrowser/ProductBrowser.js',
+                TRAINING_COMPONENTS: 'https://goodfaithexteriors-widgets.storage.googleapis.com/TrainingComponents/TrainingComponents.js',
+                SHARED_SERVICES: 'https://goodfaithexteriors-widgets.storage.googleapis.com/shared/services/',
+                SHARED_HOOKS: 'https://goodfaithexteriors-widgets.storage.googleapis.com/shared/hooks/'
+            }
+        };
+        
+        let selectedMethod = null;
+        let uploadedImage = null;
+        let measurementResults = null;
+        
+        // GFE Iframe Communication System
+        class GFEWindowMeasureIframe {
+            constructor() {
+                this.sessionId = `measure_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+                this.parentOrigin = '*';
+                this.reactComponentsLoaded = false;
+                this.init();
+            }
+            
+            async init() {
+                console.log('📐 GFE Window Measure iframe initializing...');
+                
+                // Setup parent communication
+                this.setupParentCommunication();
+                
+                // Load React components from Google Cloud Storage
+                await this.loadReactComponents();
+                
+                // Initialize iframe communication
+                this.initializeIframeCommunication();
+                
+                // Notify parent that component is ready
+                this.notifyParent({
+                    type: 'GFE_COMPONENT_READY',
+                    source: 'ai-window-measure',
+                    sessionId: this.sessionId,
+                    capabilities: ['window_measurement', 'ai_vision', 'photo_analysis', 'manual_input']
+                });
+                
+                console.log('✅ GFE Window Measure iframe ready');
+            }
+            
+            setupParentCommunication() {
+                window.addEventListener('message', (event) => {
+                    if (event.data && event.data.type) {
+                        this.handleParentMessage(event.data);
+                    }
+                });
+            }
+            
+            handleParentMessage(message) {
+                switch (message.type) {
+                    case 'GFE_CONFIG_UPDATE':
+                        console.log('📋 Config update received:', message.config);
+                        this.updateConfiguration(message.config);
+                        break;
+                    case 'GFE_HEALTH_CHECK':
+                        this.respondToHealthCheck();
+                        break;
+                    case 'GFE_USER_DATA':
+                        this.updateUserData(message.userData);
+                        break;
+                }
+            }
+            
+            async loadReactComponents() {
+                try {
+                    // Load React components from Google Cloud Storage
+                    const componentScript = document.createElement('script');
+                    componentScript.src = CONFIG.REACT_COMPONENTS.WINDOW_ESTIMATOR;
+                    componentScript.onload = () => {
+                        console.log('✅ React component loaded');
+                        this.reactComponentsLoaded = true;
+                        this.initializeReactComponent();
+                    };
+                    componentScript.onerror = () => {
+                        console.warn('⚠️ Failed to load React component, using fallback');
+                        this.reactComponentsLoaded = false;
+                    };
+                    document.head.appendChild(componentScript);
+                } catch (error) {
+                    console.error('❌ Error loading React components:', error);
+                    this.reactComponentsLoaded = false;
+                }
+            }
+            
+            initializeReactComponent() {
+                // If React components are loaded, initialize them
+                if (this.reactComponentsLoaded && window.WindowMeasurement) {
+                    const measurementContainer = document.querySelector('.measurement-container');
+                    
+                    // Create React container
+                    const reactContainer = document.createElement('div');
+                    reactContainer.id = 'react-window-measurement';
+                    measurementContainer.appendChild(reactContainer);
+                    
+                    // Initialize React component
+                    window.WindowMeasurement.init({
+                        container: reactContainer,
+                        config: CONFIG,
+                        onMeasurement: (data) => this.handleMeasurement(data),
+                        onAnalytics: (data) => this.trackAnalytics(data)
+                    });
+                }
+            }
+            
+            initializeIframeCommunication() {
+                // Enhanced API call function with Google Cloud integration
+                this.makeApiCall = async (endpoint, method = 'GET', data = null) => {
+                    // Try API Gateway first, then fallback to backend
+                    const urls = [CONFIG.API_GATEWAY_URL, CONFIG.BACKEND_URL];
+                    
+                    for (const baseUrl of urls) {
+                        try {
+                            const url = `${baseUrl}${endpoint}`;
+                            const options = {
+                                method: method,
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'X-Wix-Site-Id': CONFIG.wixSiteId,
+                                    'X-Wix-Client-Id': CONFIG.wixClientId,
+                                    'X-Project-ID': CONFIG.PROJECT_ID,
+                                    'X-Session-Id': this.sessionId
+                                }
+                            };
+                            
+                            if (data && (method === 'POST' || method === 'PUT')) {
+                                options.body = JSON.stringify(data);
+                            }
+                            
+                            const response = await fetch(url, options);
+                            
+                            if (!response.ok) {
+                                throw new Error(`API call failed: ${response.status}`);
+                            }
+                            
+                            return await response.json();
+                        } catch (error) {
+                            console.warn(`Failed to call ${baseUrl}:`, error);
+                            continue;
+                        }
+                    }
+                    
+                    throw new Error('All API endpoints failed');
+                };
+            }
+            
+            notifyParent(message) {
+                try {
+                    window.parent.postMessage(message, this.parentOrigin);
+                } catch (error) {
+                    console.error('Failed to notify parent:', error);
+                }
+            }
+            
+            handleMeasurement(measurementData) {
+                this.notifyParent({
+                    type: 'GFE_MEASUREMENT_COMPLETED',
+                    data: measurementData,
+                    sessionId: this.sessionId
+                });
+            }
+            
+            trackAnalytics(analyticsData) {
+                this.notifyParent({
+                    type: 'GFE_ANALYTICS_EVENT',
+                    event: analyticsData.event,
+                    data: analyticsData.data,
+                    sessionId: this.sessionId
+                });
+            }
+            
+            updateConfiguration(config) {
+                Object.assign(CONFIG, config);
+                console.log('📋 Configuration updated:', CONFIG);
+            }
+            
+            updateUserData(userData) {
+                this.userData = userData;
+                console.log('👤 User data updated:', userData);
+            }
+            
+            respondToHealthCheck() {
+                this.notifyParent({
+                    type: 'GFE_HEALTH_RESPONSE',
+                    status: 'healthy',
+                    timestamp: Date.now(),
+                    sessionId: this.sessionId,
+                    reactComponentsLoaded: this.reactComponentsLoaded
+                });
+            }
+        }
+        
+        // Initialize the iframe communication system
+        const gfeIframe = new GFEWindowMeasureIframe();
+        
+        function selectMethod(method, element) {
+            selectedMethod = method;
+            
+            // Remove previous selection
+            document.querySelectorAll('.method-card').forEach(card => {
+                card.classList.remove('selected');
+            });
+            
+            // Add selection to clicked card
+            if (element) {
+                element.classList.add('selected');
+            }
+            
+            console.log('Selected method:', method);
+            
+            // Track method selection
+            gfeIframe.trackAnalytics({
+                event: 'measurement_method_selected',
+                data: { method: method }
+            });
+        }
+        
+        function handleImageUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            uploadedImage = file;
+            
+            // Show preview
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const uploadArea = document.getElementById('uploadArea');
+                uploadArea.innerHTML = `
+                    <h3><i class="fas fa-check-circle"></i> Image Uploaded</h3>
+                    <img src="${e.target.result}" class="preview-image">
+                    <p>${file.name}</p>
+                    <button class="measurement-button" onclick="processMeasurement()">
+                        <i class="fas fa-cogs"></i>
+                        Process Measurement
+                    </button>
+                `;
+            };
+            reader.readAsDataURL(file);
+            
+            // Track image upload
+            gfeIframe.trackAnalytics({
+                event: 'image_uploaded',
+                data: { fileName: file.name, fileSize: file.size }
+            });
+        }
+        
+        async function processMeasurement() {
+            if (!selectedMethod || !uploadedImage) {
+                showError('Please select a method and upload an image.');
+                return;
+            }
+            
+            // Show loading
+            showElement('loading');
+            hideElement('resultsSection');
+            hideElement('errorMessage');
+            hideElement('successMessage');
+            
+            try {
+                // Send to Google Cloud Vision API for analysis
+                const measurementData = {
+                    method: selectedMethod,
+                    image: uploadedImage,
+                    sessionId: gfeIframe.sessionId,
+                    timestamp: new Date().toISOString()
+                };
+                
+                const response = await enhancedMeasurement(measurementData);
+                
+                if (response.success && response.measurement) {
+                    // Update results display
+                    document.getElementById('widthValue').textContent = `${response.measurement.width}"`;
+                    document.getElementById('heightValue').textContent = `${response.measurement.height}"`;
+                    document.getElementById('confidenceValue').textContent = `${response.measurement.confidence}%`;
+                    document.getElementById('methodValue').textContent = selectedMethod;
+                    
+                    measurementResults = response.measurement;
+                    
+                    // Show results
+                    showElement('resultsSection');
+                    showSuccess('Measurement completed successfully!');
+                    
+                    // Notify parent
+                    gfeIframe.handleMeasurement(response.measurement);
+                    
+                    // Track success
+                    gfeIframe.trackAnalytics({
+                        event: 'measurement_success',
+                        data: {
+                            method: selectedMethod,
+                            width: response.measurement.width,
+                            height: response.measurement.height,
+                            confidence: response.measurement.confidence
+                        }
+                    });
+                } else {
+                    throw new Error(response.error || 'Measurement failed');
+                }
+            } catch (error) {
+                console.error('Measurement error:', error);
+                showError('Failed to process measurement. Please try again.');
+                
+                // Track error
+                gfeIframe.trackAnalytics({
+                    event: 'measurement_error',
+                    data: { error: error.message }
+                });
+            } finally {
+                hideElement('loading');
+            }
+        }
+        
+        // Enhanced measurement function with Google Cloud integration
+        async function enhancedMeasurement(measurementData) {
+            try {
+                // Convert image to base64 for Google Vision API
+                const base64Image = await convertToBase64(measurementData.image);
+                
+                // Send to Google Cloud Vision API
+                const response = await gfeIframe.makeApiCall('/api/vision/analyze', 'POST', {
+                    image: base64Image,
+                    method: measurementData.method,
+                    sessionId: measurementData.sessionId,
+                    source: 'ai-window-measure-iframe'
+                });
+                
+                return response;
+            } catch (error) {
+                console.error('Enhanced measurement error:', error);
+                throw error;
+            }
+        }
+        
+        // Convert file to base64
+        function convertToBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result.split(',')[1]);
+                reader.onerror = error => reject(error);
+                reader.readAsDataURL(file);
+            });
+        }
+        
+        // Show/hide elements
+        function showElement(id) {
+            document.getElementById(id).style.display = 'block';
+        }
+        
+        function hideElement(id) {
+            document.getElementById(id).style.display = 'none';
+        }
+        
+        // Show error message
+        function showError(message) {
+            const errorElement = document.getElementById('errorMessage');
+            errorElement.textContent = message;
+            showElement('errorMessage');
+            setTimeout(() => hideElement('errorMessage'), 5000);
+        }
+        
+        // Show success message
+        function showSuccess(message) {
+            const successElement = document.getElementById('successMessage');
+            successElement.textContent = message;
+            showElement('successMessage');
+            setTimeout(() => hideElement('successMessage'), 5000);
+        }
+        
+        // Handle drag and drop
+        const uploadArea = document.getElementById('uploadArea');
+        uploadArea.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+        
+        uploadArea.addEventListener('dragleave', function(e) {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+        });
+        
+        uploadArea.addEventListener('drop', function(e) {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                document.getElementById('imageInput').files = files;
+                handleImageUpload({ target: { files: files } });
+            }
+        });
+        
+        // Override the original API call with enhanced version
+        window.makeApiCall = gfeIframe.makeApiCall;
+    </script>
+</body>
+</html>

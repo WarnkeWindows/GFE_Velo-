@@ -1,0 +1,1171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Chat Agent - Good Faith Exteriors</title>
+    
+    <!-- Sentry Error Tracking -->
+    <script src="https://browser.sentry-cdn.com/7.0.0/bundle.min.js" crossorigin="anonymous"></script>
+    <script>
+        Sentry.init({
+            dsn: "https://daf10ccaaf2dcea42bc8ab5340f36027@o4509594994868224.ingest.us.sentry.io/4509595014463489",
+            environment: "production",
+            tracesSampleRate: 1.0
+        });
+    </script>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #1a2332 0%, #0f1419 100%);
+            color: #ffffff;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .chat-container {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            max-width: 800px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .chat-header {
+            background: linear-gradient(135deg, #d4af37 0%, #f4d03f 100%);
+            color: #1a2332;
+            padding: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+        }
+
+        .agent-avatar {
+            width: 50px;
+            height: 50px;
+            background: #1a2332;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            color: #d4af37;
+        }
+
+        .agent-info h3 {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+
+        .agent-status {
+            font-size: 0.9rem;
+            opacity: 0.8;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .status-indicator {
+            width: 8px;
+            height: 8px;
+            background: #27ae60;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .message {
+            display: flex;
+            gap: 0.75rem;
+            max-width: 80%;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .message.user {
+            align-self: flex-end;
+            flex-direction: row-reverse;
+        }
+
+        .message.agent {
+            align-self: flex-start;
+        }
+
+        .message-avatar {
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            flex-shrink: 0;
+        }
+
+        .message.user .message-avatar {
+            background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+            color: white;
+        }
+
+        .message.agent .message-avatar {
+            background: linear-gradient(135deg, #d4af37 0%, #f4d03f 100%);
+            color: #1a2332;
+        }
+
+        .message-content {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 0.75rem 1rem;
+            border-radius: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            position: relative;
+        }
+
+        .message.user .message-content {
+            background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+            border-radius: 15px 15px 5px 15px;
+        }
+
+        .message.agent .message-content {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px 15px 15px 5px;
+        }
+
+        .message-text {
+            line-height: 1.5;
+            margin-bottom: 0.5rem;
+        }
+
+        .message-time {
+            font-size: 0.75rem;
+            opacity: 0.7;
+            text-align: right;
+        }
+
+        .message.agent .message-time {
+            text-align: left;
+        }
+
+        .typing-indicator {
+            display: none;
+            align-items: center;
+            gap: 0.75rem;
+            max-width: 80%;
+            margin-bottom: 1rem;
+        }
+
+        .typing-dots {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 0.75rem 1rem;
+            border-radius: 15px 15px 15px 5px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .dots {
+            display: flex;
+            gap: 0.25rem;
+        }
+
+        .dot {
+            width: 6px;
+            height: 6px;
+            background: #d4af37;
+            border-radius: 50%;
+            animation: typing 1.4s infinite;
+        }
+
+        .dot:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .dot:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        @keyframes typing {
+            0%, 60%, 100% {
+                transform: translateY(0);
+                opacity: 0.5;
+            }
+            30% {
+                transform: translateY(-10px);
+                opacity: 1;
+            }
+        }
+
+        .chat-input {
+            padding: 1rem;
+            background: rgba(255, 255, 255, 0.05);
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .input-container {
+            display: flex;
+            gap: 0.75rem;
+            align-items: flex-end;
+        }
+
+        .input-field {
+            flex: 1;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 20px;
+            padding: 0.75rem 1rem;
+            color: #ffffff;
+            font-size: 1rem;
+            resize: none;
+            min-height: 44px;
+            max-height: 120px;
+            transition: all 0.3s ease;
+        }
+
+        .input-field:focus {
+            outline: none;
+            border-color: #d4af37;
+            box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.2);
+        }
+
+        .input-field::placeholder {
+            color: #a0a9b8;
+        }
+
+        .send-button {
+            background: linear-gradient(135deg, #d4af37 0%, #f4d03f 100%);
+            color: #1a2332;
+            border: none;
+            border-radius: 50%;
+            width: 44px;
+            height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 1.1rem;
+        }
+
+        .send-button:hover:not(:disabled) {
+            transform: scale(1.1);
+            box-shadow: 0 5px 15px rgba(212, 175, 55, 0.4);
+        }
+
+        .send-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .quick-actions {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .quick-action {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: #ffffff;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .quick-action:hover {
+            background: rgba(212, 175, 55, 0.2);
+            border-color: #d4af37;
+        }
+
+        .welcome-message {
+            text-align: center;
+            padding: 2rem;
+            color: #a0a9b8;
+        }
+
+        .welcome-message i {
+            font-size: 3rem;
+            color: #d4af37;
+            margin-bottom: 1rem;
+        }
+
+        .welcome-message h3 {
+            color: #ffffff;
+            margin-bottom: 0.5rem;
+        }
+
+        .error-message {
+            background: rgba(231, 76, 60, 0.2);
+            border: 1px solid #e74c3c;
+            color: #e74c3c;
+            padding: 0.75rem 1rem;
+            border-radius: 10px;
+            margin: 0.5rem 1rem;
+            font-size: 0.9rem;
+        }
+
+        @media (max-width: 768px) {
+            .chat-container {
+                height: 100vh;
+                border-radius: 0;
+            }
+            
+            .chat-header {
+                padding: 1rem;
+            }
+            
+            .agent-avatar {
+                width: 40px;
+                height: 40px;
+                font-size: 1.2rem;
+            }
+            
+            .message {
+                max-width: 90%;
+            }
+            
+            .quick-actions {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-container">
+        <div class="chat-header">
+            <div class="agent-avatar">
+                <i class="fas fa-robot"></i>
+            </div>
+            <div class="agent-info">
+                <h3>GFE AI Assistant</h3>
+                <div class="agent-status">
+                    <div class="status-indicator"></div>
+                    Online - Ready to help
+                </div>
+            </div>
+        </div>
+
+        <div class="chat-messages" id="chatMessages">
+            <div class="welcome-message" id="welcomeMessage">
+                <i class="fas fa-comments"></i>
+                <h3>Welcome to Good Faith Exteriors!</h3>
+                <p>I'm your AI assistant. I can help you with window estimates, product information, scheduling consultations, and answering any questions about our services.</p>
+            </div>
+        </div>
+
+        <div class="typing-indicator" id="typingIndicator">
+            <div class="message-avatar">
+                <i class="fas fa-robot"></i>
+            </div>
+            <div class="typing-dots">
+                <div class="dots">
+                    <div class="dot"></div>
+                    <div class="dot"></div>
+                    <div class="dot"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="chat-input">
+            <div class="quick-actions" id="quickActions">
+                <button class="quick-action" onclick="sendQuickMessage('I need a window estimate')">
+                    <i class="fas fa-calculator"></i> Get Estimate
+                </button>
+                <button class="quick-action" onclick="sendQuickMessage('What window types do you offer?')">
+                    <i class="fas fa-th-large"></i> Window Types
+                </button>
+                <button class="quick-action" onclick="sendQuickMessage('I want to schedule a consultation')">
+                    <i class="fas fa-calendar"></i> Schedule
+                </button>
+                <button class="quick-action" onclick="sendQuickMessage('What are your prices?')">
+                    <i class="fas fa-dollar-sign"></i> Pricing
+                </button>
+            </div>
+            <div class="input-container">
+                <textarea 
+                    class="input-field" 
+                    id="messageInput" 
+                    placeholder="Type your message here..."
+                    rows="1"
+                ></textarea>
+                <button class="send-button" id="sendButton" onclick="sendMessage()">
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Configuration matching Google Cloud backend containers
+        const CONFIG = {
+            // Google Cloud Backend Services
+            API_GATEWAY_URL: 'https://gfe-api-gateway-aonuaov3.uc.gateway.dev',
+            BACKEND_URL: 'https://gfe-backend-837326026335.us-central1.run.app',
+            PROJECT_ID: 'good-faith-exteriors',
+            PROJECT_NUMBER: '837326026335',
+            
+            // Cloud Run Services
+            CLOUD_SERVICES: {
+                KNOWLEDGE_BASE: 'https://knowledge-base-webhook-837326026335.us-central1.run.app',
+                ANNOTATE_HTTP: 'https://annotate-http-837326026335.us-central1.run.app',
+                VISION_PROCESSING: 'https://annotate-gcs-837326026335.us-central1.run.app'
+            },
+            
+            // Google Cloud Storage Buckets
+            STORAGE_BUCKETS: {
+                WIDGETS: 'goodfaithexteriors-widgets',
+                STATIC_PAGES: 'gfe-static-pages',
+                IMAGE_ANALYSIS: 'image-analysis-library',
+                VISION_INPUT: 'vision-input-837326026335'
+            },
+            
+            // Wix Configuration
+            wixSiteId: '5ec64f41-3f5e-4ba1-b9fc-018d3a8681a4',
+            wixClientId: '11c09244-492f-4332-9983-e768db711388',
+            
+            // React Components URLs (from Google Cloud Storage)
+            REACT_COMPONENTS: {
+                WINDOW_ESTIMATOR: 'https://goodfaithexteriors-widgets.storage.googleapis.com/WindowEstimator/WindowEstimator.js',
+                PRODUCT_BROWSER: 'https://goodfaithexteriors-widgets.storage.googleapis.com/ProductBrowser/ProductBrowser.js',
+                CHAT_AGENT: 'https://goodfaithexteriors-widgets.storage.googleapis.com/ChatAgent/ChatAgent.js',
+                SHARED_SERVICES: 'https://goodfaithexteriors-widgets.storage.googleapis.com/shared/services/',
+                SHARED_HOOKS: 'https://goodfaithexteriors-widgets.storage.googleapis.com/shared/hooks/'
+            }
+        };
+
+        // State
+        let conversationHistory = [];
+        let isTyping = false;
+
+        // GFE Iframe Communication System
+        class GFEChatAgentIframe {
+            constructor() {
+                this.sessionId = `chat_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+                this.parentOrigin = '*';
+                this.reactComponentsLoaded = false;
+                this.conversationContext = null;
+                this.init();
+            }
+            
+            async init() {
+                console.log('🤖 GFE Chat Agent iframe initializing...');
+                
+                // Setup parent communication
+                this.setupParentCommunication();
+                
+                // Load React components from Google Cloud Storage
+                await this.loadReactComponents();
+                
+                // Initialize iframe communication
+                this.initializeIframeCommunication();
+                
+                // Notify parent that component is ready
+                this.notifyParent({
+                    type: 'GFE_COMPONENT_READY',
+                    source: 'ai-chat-agent',
+                    sessionId: this.sessionId,
+                    capabilities: ['chat', 'nlp', 'lead_qualification', 'appointment_scheduling', 'product_recommendations']
+                });
+                
+                console.log('✅ GFE Chat Agent iframe ready');
+            }
+            
+            setupParentCommunication() {
+                window.addEventListener('message', (event) => {
+                    if (event.data && event.data.type) {
+                        this.handleParentMessage(event.data);
+                    }
+                });
+            }
+            
+            handleParentMessage(message) {
+                switch (message.type) {
+                    case 'GFE_CONFIG_UPDATE':
+                        console.log('📋 Config update received:', message.config);
+                        this.updateConfiguration(message.config);
+                        break;
+                    case 'GFE_HEALTH_CHECK':
+                        this.respondToHealthCheck();
+                        break;
+                    case 'GFE_USER_DATA':
+                        this.updateUserData(message.userData);
+                        break;
+                    case 'GFE_CONVERSATION_CONTEXT':
+                        this.updateConversationContext(message.context);
+                        break;
+                    case 'GFE_SEND_MESSAGE':
+                        this.injectMessage(message.message);
+                        break;
+                }
+            }
+            
+            async loadReactComponents() {
+                try {
+                    // Load React components from Google Cloud Storage
+                    const componentScript = document.createElement('script');
+                    componentScript.src = CONFIG.REACT_COMPONENTS.CHAT_AGENT;
+                    componentScript.onload = () => {
+                        console.log('✅ React ChatAgent component loaded');
+                        this.reactComponentsLoaded = true;
+                        this.initializeReactComponent();
+                    };
+                    componentScript.onerror = () => {
+                        console.warn('⚠️ Failed to load React component, using fallback');
+                        this.reactComponentsLoaded = false;
+                    };
+                    document.head.appendChild(componentScript);
+                } catch (error) {
+                    console.error('❌ Error loading React components:', error);
+                    this.reactComponentsLoaded = false;
+                }
+            }
+            
+            initializeReactComponent() {
+                // If React components are loaded, initialize them
+                if (this.reactComponentsLoaded && window.ChatAgent) {
+                    const chatContainer = document.querySelector('.chat-container');
+                    
+                    // Create React container
+                    const reactContainer = document.createElement('div');
+                    reactContainer.id = 'react-chat-agent';
+                    chatContainer.appendChild(reactContainer);
+                    
+                    // Initialize React component
+                    window.ChatAgent.init({
+                        container: reactContainer,
+                        config: CONFIG,
+                        sessionId: this.sessionId,
+                        onMessage: (data) => this.handleMessage(data),
+                        onLeadCapture: (data) => this.handleLeadCapture(data),
+                        onAppointmentRequest: (data) => this.handleAppointmentRequest(data),
+                        onAnalytics: (data) => this.trackAnalytics(data)
+                    });
+                    
+                    // Hide the original chat interface
+                    document.querySelector('.chat-messages').style.display = 'none';
+                    document.querySelector('.chat-input').style.display = 'none';
+                }
+            }
+            
+            initializeIframeCommunication() {
+                // Enhanced API call function with Google Cloud integration
+                this.makeApiCall = async (endpoint, method = 'GET', data = null) => {
+                    // Try Knowledge Base first, then API Gateway, then fallback to backend
+                    const urls = [
+                        CONFIG.CLOUD_SERVICES.KNOWLEDGE_BASE,
+                        CONFIG.API_GATEWAY_URL,
+                        CONFIG.BACKEND_URL
+                    ];
+                    
+                    for (const baseUrl of urls) {
+                        try {
+                            const url = `${baseUrl}${endpoint}`;
+                            const options = {
+                                method: method,
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'X-Wix-Site-Id': CONFIG.wixSiteId,
+                                    'X-Wix-Client-Id': CONFIG.wixClientId,
+                                    'X-Project-ID': CONFIG.PROJECT_ID,
+                                    'X-Session-Id': this.sessionId,
+                                    'X-Conversation-Context': JSON.stringify(this.conversationContext || {})
+                                }
+                            };
+                            
+                            if (data && (method === 'POST' || method === 'PUT')) {
+                                options.body = JSON.stringify({
+                                    ...data,
+                                    sessionId: this.sessionId,
+                                    conversationHistory: conversationHistory.slice(-10) // Last 10 messages for context
+                                });
+                            }
+                            
+                            const response = await fetch(url, options);
+                            
+                            if (!response.ok) {
+                                throw new Error(`API call failed: ${response.status}`);
+                            }
+                            
+                            return await response.json();
+                        } catch (error) {
+                            console.warn(`Failed to call ${baseUrl}:`, error);
+                            continue;
+                        }
+                    }
+                    
+                    throw new Error('All API endpoints failed');
+                };
+            }
+            
+            notifyParent(message) {
+                try {
+                    window.parent.postMessage(message, this.parentOrigin);
+                } catch (error) {
+                    console.error('Failed to notify parent:', error);
+                }
+            }
+            
+            handleMessage(messageData) {
+                this.notifyParent({
+                    type: 'GFE_CHAT_MESSAGE',
+                    data: messageData,
+                    sessionId: this.sessionId
+                });
+            }
+            
+            handleLeadCapture(leadData) {
+                this.notifyParent({
+                    type: 'GFE_LEAD_CAPTURED',
+                    data: leadData,
+                    sessionId: this.sessionId
+                });
+            }
+            
+            handleAppointmentRequest(appointmentData) {
+                this.notifyParent({
+                    type: 'GFE_APPOINTMENT_REQUEST',
+                    data: appointmentData,
+                    sessionId: this.sessionId
+                });
+            }
+            
+            trackAnalytics(analyticsData) {
+                this.notifyParent({
+                    type: 'GFE_ANALYTICS_EVENT',
+                    event: analyticsData.event,
+                    data: analyticsData.data,
+                    sessionId: this.sessionId
+                });
+            }
+            
+            updateConfiguration(config) {
+                Object.assign(CONFIG, config);
+                console.log('📋 Configuration updated:', CONFIG);
+            }
+            
+            updateUserData(userData) {
+                this.userData = userData;
+                console.log('👤 User data updated:', userData);
+                
+                // Personalize chat if user data is available
+                if (userData && userData.name && conversationHistory.length === 0) {
+                    setTimeout(() => {
+                        addMessage('agent', `Hi ${userData.name}! I see you're logged in. How can I help you with your window project today?`);
+                    }, 1500);
+                }
+            }
+            
+            updateConversationContext(context) {
+                this.conversationContext = context;
+                console.log('💬 Conversation context updated:', context);
+            }
+            
+            injectMessage(message) {
+                if (message.type === 'user') {
+                    document.getElementById('messageInput').value = message.text;
+                    sendMessage();
+                } else if (message.type === 'agent') {
+                    addMessage('agent', message.text);
+                }
+            }
+            
+            respondToHealthCheck() {
+                this.notifyParent({
+                    type: 'GFE_HEALTH_RESPONSE',
+                    status: 'healthy',
+                    timestamp: Date.now(),
+                    sessionId: this.sessionId,
+                    reactComponentsLoaded: this.reactComponentsLoaded,
+                    conversationActive: conversationHistory.length > 0
+                });
+            }
+        }
+        
+        // Initialize the iframe communication system
+        const gfeIframe = new GFEChatAgentIframe();
+        
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            setupEventListeners();
+            addWelcomeMessage();
+        });
+
+        // Setup event listeners
+        function setupEventListeners() {
+            const messageInput = document.getElementById('messageInput');
+            const sendButton = document.getElementById('sendButton');
+
+            messageInput.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    sendMessage();
+                }
+            });
+
+            messageInput.addEventListener('input', function() {
+                this.style.height = 'auto';
+                this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+                
+                sendButton.disabled = !this.value.trim();
+            });
+
+            // Initial state
+            sendButton.disabled = true;
+        }
+
+        // Add welcome message
+        function addWelcomeMessage() {
+            setTimeout(() => {
+                addMessage('agent', 'Hello! I\'m your AI assistant from Good Faith Exteriors. How can I help you today?');
+            }, 1000);
+        }
+
+        // Send message
+        async function sendMessage() {
+            const messageInput = document.getElementById('messageInput');
+            const message = messageInput.value.trim();
+
+            if (!message || isTyping) return;
+
+            // Add user message
+            addMessage('user', message);
+            messageInput.value = '';
+            messageInput.style.height = 'auto';
+            document.getElementById('sendButton').disabled = true;
+
+            // Hide welcome message and quick actions
+            hideWelcomeMessage();
+
+            // Show typing indicator
+            showTyping();
+
+            try {
+                // Enhanced AI chat with multiple providers and fallback
+                let aiResponse = null;
+                const providers = ['anthropic', 'openai', 'google'];
+                
+                for (const provider of providers) {
+                    try {
+                        aiResponse = await makeApiCall('/api/ai/chat', 'POST', {
+                            message: message,
+                            provider: provider,
+                            context: gfeIframe.conversationContext,
+                            userData: gfeIframe.userData,
+                            conversationHistory: conversationHistory.slice(-5),
+                            options: {
+                                maxTokens: 1024,
+                                temperature: 0.7,
+                                model: provider === 'anthropic' ? 'claude-3-sonnet-20240229' : 
+                                       provider === 'openai' ? 'gpt-4' : 'gemini-pro'
+                            }
+                        });
+                        
+                        if (aiResponse.success) {
+                            break; // Success with this provider
+                        }
+                    } catch (providerError) {
+                        console.warn(`${provider} provider failed:`, providerError);
+                        continue; // Try next provider
+                    }
+                }
+                
+                const response = aiResponse; // For compatibility with existing code
+
+                if (response.success) {
+                    // Add AI response
+                    addMessage('agent', response.response);
+                    
+                    // Handle special response types
+                    if (response.actions) {
+                        handleResponseActions(response.actions);
+                    }
+                } else {
+                    throw new Error(response.error || 'Failed to get response');
+                }
+            } catch (error) {
+                console.error('Chat error:', error);
+                
+                // Track error
+                gfeIframe.trackAnalytics({
+                    event: 'chat_error',
+                    data: {
+                        error: error.message,
+                        message: message
+                    }
+                });
+                
+                addMessage('agent', 'I apologize, but I\'m having trouble connecting right now. Please try again in a moment, or feel free to call us directly at (555) 123-4567.');
+            } finally {
+                hideTyping();
+            }
+        }
+
+        // Send quick message
+        function sendQuickMessage(message) {
+            const messageInput = document.getElementById('messageInput');
+            messageInput.value = message;
+            messageInput.focus();
+            document.getElementById('sendButton').disabled = false;
+            sendMessage();
+        }
+
+        // Add message to chat
+        function addMessage(sender, text) {
+            const messagesContainer = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${sender}`;
+
+            const currentTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+            messageDiv.innerHTML = `
+                <div class="message-avatar">
+                    <i class="fas fa-${sender === 'user' ? 'user' : 'robot'}"></i>
+                </div>
+                <div class="message-content">
+                    <div class="message-text">${text}</div>
+                    <div class="message-time">${currentTime}</div>
+                </div>
+            `;
+
+            messagesContainer.appendChild(messageDiv);
+            scrollToBottom();
+
+            // Add to conversation history
+            conversationHistory.push({ sender, text, timestamp: new Date() });
+
+            // Track message through GFE iframe system
+            gfeIframe.trackAnalytics({
+                event: 'chat_message',
+                data: {
+                    sender: sender,
+                    message_length: text.length,
+                    conversation_length: conversationHistory.length,
+                    timestamp: new Date().toISOString()
+                }
+            });
+            
+            // Send message data to parent
+            if (sender === 'user') {
+                gfeIframe.handleMessage({
+                    type: 'user_message',
+                    text: text,
+                    timestamp: new Date().toISOString()
+                });
+            } else {
+                gfeIframe.handleMessage({
+                    type: 'agent_response',
+                    text: text,
+                    timestamp: new Date().toISOString()
+                });
+            }
+        }
+
+        // Show typing indicator
+        function showTyping() {
+            isTyping = true;
+            const typingIndicator = document.getElementById('typingIndicator');
+            typingIndicator.style.display = 'flex';
+            scrollToBottom();
+        }
+
+        // Hide typing indicator
+        function hideTyping() {
+            isTyping = false;
+            const typingIndicator = document.getElementById('typingIndicator');
+            typingIndicator.style.display = 'none';
+        }
+
+        // Hide welcome message
+        function hideWelcomeMessage() {
+            const welcomeMessage = document.getElementById('welcomeMessage');
+            const quickActions = document.getElementById('quickActions');
+            
+            if (welcomeMessage) {
+                welcomeMessage.style.display = 'none';
+            }
+            
+            if (quickActions && conversationHistory.length > 0) {
+                quickActions.style.display = 'none';
+            }
+        }
+
+        // Scroll to bottom
+        function scrollToBottom() {
+            const messagesContainer = document.getElementById('chatMessages');
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        // Enhanced API call with Google Cloud integration
+        async function makeApiCall(endpoint, method = 'GET', data = null) {
+            return await gfeIframe.makeApiCall(endpoint, method, data);
+        }
+
+        // Show error message
+        function showError(message) {
+            const chatContainer = document.querySelector('.chat-container');
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'error-message';
+            errorDiv.textContent = message;
+            
+            chatContainer.insertBefore(errorDiv, chatContainer.lastElementChild);
+            
+            setTimeout(() => {
+                errorDiv.remove();
+            }, 5000);
+        }
+
+        // Handle window resize
+        window.addEventListener('resize', function() {
+            scrollToBottom();
+        });
+
+        // Handle response actions (appointments, lead capture, etc.)
+        function handleResponseActions(actions) {
+            actions.forEach(action => {
+                switch (action.type) {
+                    case 'lead_capture':
+                        gfeIframe.handleLeadCapture(action.data);
+                        break;
+                    case 'appointment_request':
+                        gfeIframe.handleAppointmentRequest(action.data);
+                        break;
+                    case 'product_recommendation':
+                        gfeIframe.trackAnalytics({
+                            event: 'product_recommended',
+                            data: action.data
+                        });
+                        break;
+                    case 'estimate_request':
+                        gfeIframe.notifyParent({
+                            type: 'GFE_NAVIGATE_TO_ESTIMATOR',
+                            data: action.data,
+                            sessionId: gfeIframe.sessionId
+                        });
+                        break;
+                }
+            });
+        }
+        
+        // Override the original API call with enhanced version
+        window.makeApiCall = gfeIframe.makeApiCall;
+        
+        // Enhanced fallback response generator
+        function generateFallbackResponse(message) {
+            const lowerMessage = message.toLowerCase();
+            
+            // Smart fallback responses based on message content
+            if (lowerMessage.includes('estimate') || lowerMessage.includes('quote') || lowerMessage.includes('price')) {
+                return "I'd be happy to help you get an estimate! While our AI system is temporarily unavailable, you can use our window estimator tool or call us at (651) 416-8669 for immediate assistance.";
+            }
+            
+            if (lowerMessage.includes('appointment') || lowerMessage.includes('schedule') || lowerMessage.includes('meeting')) {
+                return "I can help you schedule an appointment! Please call us at (651) 416-8669 or email info@goodfaithexteriors.com to set up a consultation at your convenience.";
+            }
+            
+            if (lowerMessage.includes('window') || lowerMessage.includes('door') || lowerMessage.includes('install')) {
+                return "Great question about our window and door services! We specialize in premium window replacements and installations. For detailed information, please visit our website or call (651) 416-8669.";
+            }
+            
+            if (lowerMessage.includes('contact') || lowerMessage.includes('phone') || lowerMessage.includes('email')) {
+                return "Here's how to reach us:\\n\\n📞 Phone: (651) 416-8669\\n📧 Email: info@goodfaithexteriors.com\\n🌐 Website: goodfaithexteriors.com\\n\\nWe're here to help with all your window and door needs!";
+            }
+            
+            // Default fallback
+            return "I apologize, but our AI system is temporarily unavailable. However, I'm here to help! Please call us at (651) 416-8669 or email info@goodfaithexteriors.com for immediate assistance with your window and door needs.";
+        }
+        
+        // Intelligent response processing
+        async function processIntelligentResponse(userMessage, aiResponse) {
+            try {
+                const lowerMessage = userMessage.toLowerCase();
+                const lowerResponse = aiResponse.toLowerCase();
+                
+                // Detect lead capture opportunities
+                if (lowerMessage.includes('estimate') || lowerMessage.includes('quote') || 
+                    lowerMessage.includes('interested') || lowerMessage.includes('contact')) {
+                    
+                    // Trigger lead capture process
+                    setTimeout(() => {
+                        gfeIframe.handleLeadCapture({
+                            source: 'ai-chat-interaction',
+                            message: userMessage,
+                            aiResponse: aiResponse,
+                            timestamp: new Date().toISOString()
+                        });
+                    }, 2000);
+                }
+                
+                // Detect appointment requests
+                if (lowerMessage.includes('schedule') || lowerMessage.includes('appointment') || 
+                    lowerMessage.includes('meeting') || lowerMessage.includes('consultation')) {
+                    
+                    // Trigger appointment request
+                    setTimeout(() => {
+                        gfeIframe.handleAppointmentRequest({
+                            source: 'ai-chat-interaction',
+                            requestType: 'consultation',
+                            message: userMessage,
+                            timestamp: new Date().toISOString()
+                        });
+                    }, 1500);
+                }
+                
+                // Detect product interest
+                if (lowerMessage.includes('window') || lowerMessage.includes('door') || 
+                    lowerMessage.includes('product') || lowerMessage.includes('brand')) {
+                    
+                    // Track product interest
+                    gfeIframe.trackAnalytics({
+                        event: 'product_interest_detected',
+                        data: {
+                            userMessage: userMessage,
+                            aiResponse: aiResponse,
+                            timestamp: new Date().toISOString()
+                        }
+                    });
+                }
+                
+                // Auto-trigger estimator navigation if appropriate
+                if (lowerResponse.includes('estimator') || lowerResponse.includes('calculate') || 
+                    lowerResponse.includes('pricing tool')) {
+                    
+                    // Show estimator navigation option
+                    setTimeout(() => {
+                        const estimatorButton = document.createElement('button');
+                        estimatorButton.textContent = '🧮 Open Window Estimator';
+                        estimatorButton.className = 'quick-action';
+                        estimatorButton.onclick = () => {
+                            gfeIframe.notifyParent({
+                                type: 'GFE_NAVIGATE_TO_ESTIMATOR',
+                                data: { source: 'ai-chat-recommendation' },
+                                sessionId: gfeIframe.sessionId
+                            });
+                        };
+                        
+                        const quickActions = document.getElementById('quickActions');
+                        if (quickActions) {
+                            quickActions.appendChild(estimatorButton);
+                        }
+                    }, 1000);
+                }
+                
+            } catch (error) {
+                console.warn('Intelligent response processing failed:', error);
+            }
+        }
+        
+        // Enhanced quick message with tracking
+        function sendQuickMessage(message) {
+            gfeIframe.trackAnalytics({
+                event: 'quick_action_selected',
+                data: { message: message }
+            });
+            
+            const messageInput = document.getElementById('messageInput');
+            messageInput.value = message;
+            messageInput.focus();
+            document.getElementById('sendButton').disabled = false;
+            sendMessage();
+        }
+
+        // Auto-resize textarea
+        function autoResize(textarea) {
+            textarea.style.height = 'auto';
+            textarea.style.height = Math.min(textarea.scrollHeight, 120) + 'px';
+        }
+
+        // Export conversation
+        function exportConversation() {
+            const conversation = conversationHistory.map(msg => 
+                `[${msg.timestamp.toLocaleString()}] ${msg.sender.toUpperCase()}: ${msg.text}`
+            ).join('\n');
+            
+            const blob = new Blob([conversation], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `gfe-chat-${new Date().toISOString().split('T')[0]}.txt`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        // Clear conversation
+        function clearConversation() {
+            if (confirm('Are you sure you want to clear the conversation?')) {
+                gfeIframe.trackAnalytics({
+                    event: 'conversation_cleared',
+                    data: { messages_count: conversationHistory.length }
+                });
+                
+                conversationHistory = [];
+                document.getElementById('chatMessages').innerHTML = '';
+                document.getElementById('welcomeMessage').style.display = 'block';
+                document.getElementById('quickActions').style.display = 'flex';
+                addWelcomeMessage();
+            }
+        }
+        
+        // Enhanced export with session info
+        function exportConversation() {
+            const sessionInfo = `Session ID: ${gfeIframe.sessionId}\nExport Date: ${new Date().toLocaleString()}\nTotal Messages: ${conversationHistory.length}\n\n`;
+            const conversation = conversationHistory.map(msg => 
+                `[${msg.timestamp.toLocaleString()}] ${msg.sender.toUpperCase()}: ${msg.text}`
+            ).join('\n');
+            
+            const fullContent = sessionInfo + conversation;
+            
+            const blob = new Blob([fullContent], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `gfe-chat-${gfeIframe.sessionId}-${new Date().toISOString().split('T')[0]}.txt`;
+            a.click();
+            URL.revokeObjectURL(url);
+            
+            gfeIframe.trackAnalytics({
+                event: 'conversation_exported',
+                data: { messages_count: conversationHistory.length }
+            });
+        }
+    </script>
+</body>
+</html>
+

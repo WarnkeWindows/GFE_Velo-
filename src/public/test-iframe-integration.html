@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GFE Iframe Integration Test</title>
+    
+    <style>
+        :root {
+            --gfe-navy: #1A365D;
+            --gfe-navy-light: #2D3748;
+            --gfe-gold: #D4AF37;
+            --gfe-gold-light: #F6E05E;
+            --gfe-white: #FFFFFF;
+            --gfe-silver-light: #E2E8F0;
+            --gfe-success: #48BB78;
+            --gfe-error: #F56565;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background: linear-gradient(135deg, var(--gfe-navy) 0%, var(--gfe-navy-light) 100%);
+            color: var(--gfe-white);
+            min-height: 100vh;
+            padding: 1rem;
+        }
+
+        .test-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            gap: 2rem;
+            min-height: calc(100vh - 2rem);
+        }
+
+        .test-controls {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 1.5rem;
+            height: fit-content;
+            backdrop-filter: blur(10px);
+        }
+
+        .test-controls h2 {
+            color: var(--gfe-gold);
+            margin-bottom: 1rem;
+            font-size: 1.2rem;
+        }
+
+        .control-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .control-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: var(--gfe-silver-light);
+        }
+
+        .control-group select,
+        .control-group input {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--gfe-white);
+            font-size: 0.9rem;
+        }
+
+        .control-group select:focus,
+        .control-group input:focus {
+            outline: none;
+            border-color: var(--gfe-gold);
+        }
+
+        .test-button {
+            width: 100%;
+            padding: 0.75rem;
+            background: var(--gfe-gold);
+            color: var(--gfe-navy);
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-bottom: 0.5rem;
+            transition: all 0.3s ease;
+        }
+
+        .test-button:hover {
+            background: var(--gfe-gold-light);
+            transform: translateY(-2px);
+        }
+
+        .test-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .iframe-container {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            padding: 1rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .iframe-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            padding: 0.5rem 1rem;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+        }
+
+        .iframe-title {
+            font-weight: 600;
+            color: var(--gfe-gold);
+        }
+
+        .iframe-status {
+            padding: 0.25rem 0.75rem;
+            border-radius: 15px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .iframe-status.connected {
+            background: var(--gfe-success);
+            color: var(--gfe-white);
+        }
+
+        .iframe-status.disconnected {
+            background: var(--gfe-error);
+            color: var(--gfe-white);
+        }
+
+        .iframe-status.loading {
+            background: var(--gfe-gold);
+            color: var(--gfe-navy);
+        }
+
+        .test-iframe {
+            width: 100%;
+            height: 70vh;
+            border: none;
+            border-radius: 8px;
+            background: var(--gfe-white);
+        }
+
+        .communication-log {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-top: 1rem;
+            max-height: 200px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 0.8rem;
+        }
+
+        .log-entry {
+            margin-bottom: 0.5rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            border-left: 3px solid;
+        }
+
+        .log-entry.incoming {
+            border-left-color: var(--gfe-success);
+            background: rgba(72, 187, 120, 0.1);
+        }
+
+        .log-entry.outgoing {
+            border-left-color: var(--gfe-gold);
+            background: rgba(212, 175, 55, 0.1);
+        }
+
+        .log-entry.error {
+            border-left-color: var(--gfe-error);
+            background: rgba(245, 101, 101, 0.1);
+        }
+
+        .log-timestamp {
+            color: var(--gfe-silver-light);
+            font-size: 0.7rem;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 1rem;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--gfe-gold);
+        }
+
+        .stat-label {
+            font-size: 0.8rem;
+            color: var(--gfe-silver-light);
+        }
+
+        @media (max-width: 1024px) {
+            .test-container {
+                grid-template-columns: 1fr;
+            }
+            
+            .test-iframe {
+                height: 50vh;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <div class="test-controls">
+            <h2>🧪 Iframe Test Controls</h2>
+            
+            <div class="control-group">
+                <label for="componentSelect">Component:</label>
+                <select id="componentSelect">
+                    <option value="home">Home Page</option>
+                    <option value="unified-home">Unified Homepage</option>
+                    <option value="chat">AI Chat Agent</option>
+                    <option value="estimator">Window Estimator</option>
+                    <option value="measure">Window Measurement</option>
+                    <option value="products">Product Browser</option>
+                    <option value="property-analysis">Property Analysis</option>
+                    <option value="window-estimator">Window Estimator (React)</option>
+                </select>
+            </div>
+
+            <div class="control-group">
+                <label for="loadMethodSelect">Load Method:</label>
+                <select id="loadMethodSelect">
+                    <option value="container">Iframe Container</option>
+                    <option value="direct">Direct Load</option>
+                </select>
+            </div>
+
+            <button class="test-button" onclick="loadComponent()">Load Component</button>
+            <button class="test-button" onclick="sendHealthCheck()">Health Check</button>
+            <button class="test-button" onclick="sendConfigUpdate()">Send Config</button>
+            <button class="test-button" onclick="clearLogs()">Clear Logs</button>
+
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-value" id="messageCount">0</div>
+                    <div class="stat-label">Messages</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="errorCount">0</div>
+                    <div class="stat-label">Errors</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="loadTime">0</div>
+                    <div class="stat-label">Load Time</div>
+                </div>
+            </div>
+
+            <div class="communication-log" id="communicationLog">
+                <div class="log-entry">
+                    <div class="log-timestamp">Ready to test iframe communication</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="iframe-container">
+            <div class="iframe-header">
+                <div class="iframe-title" id="iframeTitle">No Component Loaded</div>
+                <div class="iframe-status disconnected" id="iframeStatus">Disconnected</div>
+            </div>
+            <iframe id="testIframe" class="test-iframe" src="about:blank"></iframe>
+        </div>
+    </div>
+
+    <script>
+        // Test Controller for GFE Iframe Integration
+        class GFEIframeTestController {
+            constructor() {
+                this.messageCount = 0;
+                this.errorCount = 0;
+                this.loadStartTime = null;
+                this.currentComponent = null;
+                this.isConnected = false;
+                
+                this.init();
+            }
+            
+            init() {
+                console.log('🧪 GFE Iframe Test Controller initialized');
+                this.setupMessageListener();
+                this.updateStats();
+            }
+            
+            setupMessageListener() {
+                window.addEventListener('message', (event) => {
+                    this.handleMessage(event);
+                });
+            }
+            
+            handleMessage(event) {
+                this.messageCount++;
+                const message = event.data;
+                
+                if (!message || !message.type) return;
+                
+                // Log the message
+                this.logMessage('incoming', message);
+                
+                // Handle specific message types
+                switch (message.type) {
+                    case 'GFE_COMPONENT_READY':
+                        this.handleComponentReady(message);
+                        break;
+                    case 'GFE_CONTAINER_READY':
+                        this.handleContainerReady(message);
+                        break;
+                    case 'GFE_HEALTH_RESPONSE':
+                        this.handleHealthResponse(message);
+                        break;
+                    case 'GFE_ANALYTICS_EVENT':
+                        this.handleAnalyticsEvent(message);
+                        break;
+                    case 'GFE_ERROR':
+                    case 'GFE_COMPONENT_ERROR':
+                    case 'GFE_CONTAINER_ERROR':
+                        this.handleError(message);
+                        break;
+                    default:
+                        console.log('📨 Unknown message type:', message.type);
+                }
+                
+                this.updateStats();
+            }
+            
+            handleComponentReady(message) {
+                console.log('🚀 Component ready:', message);
+                this.isConnected = true;
+                this.updateStatus('connected', 'Connected');
+                
+                if (this.loadStartTime) {
+                    const loadTime = Date.now() - this.loadStartTime;
+                    document.getElementById('loadTime').textContent = `${loadTime}ms`;
+                    this.loadStartTime = null;
+                }
+            }
+            
+            handleContainerReady(message) {
+                console.log('📦 Container ready:', message);
+                this.isConnected = true;
+                this.updateStatus('connected', 'Container Ready');
+                
+                if (this.loadStartTime) {
+                    const loadTime = Date.now() - this.loadStartTime;
+                    document.getElementById('loadTime').textContent = `${loadTime}ms`;
+                    this.loadStartTime = null;
+                }
+            }
+            
+            handleHealthResponse(message) {
+                console.log('💚 Health response:', message);
+                this.logMessage('incoming', { type: 'Health Check', status: message.status });
+            }
+            
+            handleAnalyticsEvent(message) {
+                console.log('📊 Analytics event:', message);
+                this.logMessage('incoming', { type: 'Analytics', event: message.event });
+            }
+            
+            handleError(message) {
+                console.error('❌ Error message:', message);
+                this.errorCount++;
+                this.logMessage('error', message);
+                this.updateStatus('disconnected', 'Error');
+            }
+            
+            loadComponent() {
+                const componentSelect = document.getElementById('componentSelect');
+                const loadMethodSelect = document.getElementById('loadMethodSelect');
+                const component = componentSelect.value;
+                const loadMethod = loadMethodSelect.value;
+                
+                this.currentComponent = component;
+                this.loadStartTime = Date.now();
+                this.isConnected = false;
+                
+                const iframe = document.getElementById('testIframe');
+                
+                let src;
+                if (loadMethod === 'container') {
+                    src = `gfe-iframe-container.html?component=${component}`;
+                } else {
+                    // Direct load mapping
+                    const directPaths = {
+                        'home': 'gfe-home-iframe.html',
+                        'unified-home': 'gfe-unified-homepage.html',
+                        'chat': 'ai-chat-agent.html',
+                        'estimator': 'ai-window-estimator.html',
+                        'measure': 'ai-window-measure.html',
+                        'products': 'product-browser.html',
+                        'property-analysis': 'property-analysis-hub.html',
+                        'window-estimator': 'window-estimator-iframe.html'
+                    };
+                    src = directPaths[component] || 'gfe-home-iframe.html';
+                }
+                
+                iframe.src = src;
+                
+                this.updateStatus('loading', 'Loading...');
+                this.updateTitle(`Loading ${component}...`);
+                
+                this.logMessage('outgoing', {
+                    type: 'Component Load',
+                    component: component,
+                    method: loadMethod,
+                    src: src
+                });
+                
+                // Set timeout for load failure
+                setTimeout(() => {
+                    if (!this.isConnected) {
+                        this.updateStatus('disconnected', 'Load Timeout');
+                        this.logMessage('error', { type: 'Load Timeout', component: component });
+                    }
+                }, 30000);
+            }
+            
+            sendHealthCheck() {
+                const iframe = document.getElementById('testIframe');
+                const message = {
+                    type: 'GFE_HEALTH_CHECK',
+                    timestamp: Date.now()
+                };
+                
+                iframe.contentWindow.postMessage(message, '*');
+                this.logMessage('outgoing', message);
+            }
+            
+            sendConfigUpdate() {
+                const iframe = document.getElementById('testIframe');
+                const message = {
+                    type: 'GFE_CONFIG_UPDATE',
+                    config: {
+                        testMode: true,
+                        API_GATEWAY_URL: 'https://gfe-api-gateway-aonuaov3.uc.gateway.dev',
+                        BACKEND_URL: 'https://gfe-backend-837326026335.us-central1.run.app',
+                        PROJECT_ID: 'good-faith-exteriors',
+                        wixSiteId: '5ec64f41-3f5e-4ba1-b9fc-018d3a8681a4'
+                    }
+                };
+                
+                iframe.contentWindow.postMessage(message, '*');
+                this.logMessage('outgoing', message);
+            }
+            
+            clearLogs() {
+                const log = document.getElementById('communicationLog');
+                log.innerHTML = '<div class="log-entry"><div class="log-timestamp">Logs cleared</div></div>';
+            }
+            
+            logMessage(type, message) {
+                const log = document.getElementById('communicationLog');
+                const entry = document.createElement('div');
+                entry.className = `log-entry ${type}`;
+                
+                const timestamp = new Date().toLocaleTimeString();
+                const messageText = typeof message === 'string' ? message : JSON.stringify(message, null, 2);
+                
+                entry.innerHTML = `
+                    <div class="log-timestamp">${timestamp}</div>
+                    <div>${messageText}</div>
+                `;
+                
+                log.appendChild(entry);
+                log.scrollTop = log.scrollHeight;
+            }
+            
+            updateStatus(status, text) {
+                const statusElement = document.getElementById('iframeStatus');
+                statusElement.className = `iframe-status ${status}`;
+                statusElement.textContent = text;
+            }
+            
+            updateTitle(title) {
+                document.getElementById('iframeTitle').textContent = title;
+            }
+            
+            updateStats() {
+                document.getElementById('messageCount').textContent = this.messageCount;
+                document.getElementById('errorCount').textContent = this.errorCount;
+            }
+        }
+        
+        // Initialize the test controller
+        const testController = new GFEIframeTestController();
+        
+        // Global functions for buttons
+        function loadComponent() {
+            testController.loadComponent();
+        }
+        
+        function sendHealthCheck() {
+            testController.sendHealthCheck();
+        }
+        
+        function sendConfigUpdate() {
+            testController.sendConfigUpdate();
+        }
+        
+        function clearLogs() {
+            testController.clearLogs();
+        }
+        
+        // Auto-load home component on page load
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                testController.loadComponent();
+            }, 1000);
+        });
+    </script>
+</body>
+</html>

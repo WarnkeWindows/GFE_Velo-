@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GFE Window Estimator</title>
+    
+    <!-- React and ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@16/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@16/umd/react-dom.production.min.js"></script>
+    
+    <!-- Babel for JSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <!-- Sentry Error Tracking -->
+    <script src="https://browser.sentry-cdn.com/7.0.0/bundle.min.js" crossorigin="anonymous"></script>
+    <script>
+        Sentry.init({
+            dsn: "https://daf10ccaaf2dcea42bc8ab5340f36027@o4509594994868224.ingest.us.sentry.io/4509595014463489",
+            environment: "production",
+            tracesSampleRate: 1.0
+        });
+    </script>
+    
+    <style>
+        :root {
+            --gfe-navy: #1A365D;
+            --gfe-navy-light: #2D3748;
+            --gfe-gold: #D4AF37;
+            --gfe-gold-light: #F6E05E;
+            --gfe-white: #FFFFFF;
+            --gfe-silver-light: #E2E8F0;
+            --gfe-success: #48BB78;
+            --gfe-error: #F56565;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background: linear-gradient(135deg, var(--gfe-navy) 0%, var(--gfe-navy-light) 100%);
+            color: var(--gfe-white);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+        
+        .estimator-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        .estimator-header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .estimator-header h1 {
+            font-size: 2.5rem;
+            color: var(--gfe-gold);
+            margin-bottom: 10px;
+        }
+        
+        .estimator-header p {
+            font-size: 1.2rem;
+            color: var(--gfe-silver-light);
+        }
+        
+        .estimator-content {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 30px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .loading-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 400px;
+            flex-direction: column;
+        }
+        
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid rgba(212, 175, 55, 0.3);
+            border-top: 4px solid var(--gfe-gold);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .error-container {
+            text-align: center;
+            padding: 40px;
+            background: rgba(245, 101, 101, 0.1);
+            border: 1px solid var(--gfe-error);
+            border-radius: 15px;
+            margin: 20px 0;
+        }
+        
+        .error-container h2 {
+            color: var(--gfe-error);
+            margin-bottom: 10px;
+        }
+        
+        .retry-button {
+            background: var(--gfe-gold);
+            color: var(--gfe-navy);
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 15px;
+            transition: all 0.3s ease;
+        }
+        
+        .retry-button:hover {
+            background: var(--gfe-gold-light);
+            transform: translateY(-2px);
+        }
+        
+        .contact-info {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid rgba(255, 255, 255, 0.2);
+            text-align: center;
+        }
+        
+        .contact-info h3 {
+            color: var(--gfe-gold);
+            margin-bottom: 10px;
+        }
+        
+        .contact-info p {
+            color: var(--gfe-silver-light);
+            margin-bottom: 5px;
+        }
+        
+        .contact-info a {
+            color: var(--gfe-gold);
+            text-decoration: none;
+        }
+        
+        .contact-info a:hover {
+            text-decoration: underline;
+        }
+        
+        @media (max-width: 768px) {
+            .estimator-container {
+                padding: 10px;
+            }
+            
+            .estimator-header h1 {
+                font-size: 2rem;
+            }
+            
+            .estimator-content {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="estimator-container">
+        <div class="estimator-header">
+            <h1>AI Window Estimator</h1>
+            <p>Get instant, accurate quotes powered by advanced AI technology</p>
+        </div>
+        
+        <div class="estimator-content">
+            <div id="windowEstimatorRoot">
+                <div class="loading-container">
+                    <div class="loading-spinner"></div>
+                    <p>Loading Window Estimator...</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="contact-info">
+            <h3>Need Help?</h3>
+            <p>Call us at <a href="tel:+16514168669">(651) 416-8669</a></p>
+            <p>Email: <a href="mailto:info@goodfaithexteriors.com">info@goodfaithexteriors.com</a></p>
+        </div>
+    </div>
+    
+    <script type="text/babel">
+        class WindowEstimatorIframe extends React.Component {
+            constructor(props) {
+                super(props);
+                this.state = {
+                    loading: true,
+                    error: null,
+                    config: null,
+                    sessionId: `estimator_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+                };
+            }
+            
+            componentDidMount() {
+                this.initializeComponent();
+                this.setupParentCommunication();
+            }
+            
+            initializeComponent() {
+                try {
+                    // Simulate component initialization
+                    setTimeout(() => {
+                        this.setState({ loading: false });
+                        this.notifyParent({
+                            type: 'GFE_COMPONENT_READY',
+                            source: 'window-estimator',
+                            sessionId: this.state.sessionId,
+                            capabilities: ['window_estimation', 'pricing', 'lead_capture']
+                        });
+                    }, 1000);
+                } catch (error) {
+                    this.setState({ 
+                        loading: false, 
+                        error: error.message 
+                    });
+                }
+            }
+            
+            setupParentCommunication() {
+                window.addEventListener('message', (event) => {
+                    if (event.data && event.data.type) {
+                        this.handleParentMessage(event.data);
+                    }
+                });
+            }
+            
+            handleParentMessage(message) {
+                switch (message.type) {
+                    case 'GFE_CONFIG_UPDATE':
+                        this.setState({ config: message.config });
+                        break;
+                    case 'GFE_HEALTH_CHECK':
+                        this.notifyParent({
+                            type: 'GFE_HEALTH_RESPONSE',
+                            status: 'healthy',
+                            timestamp: Date.now()
+                        });
+                        break;
+                }
+            }
+            
+            notifyParent(message) {
+                try {
+                    window.parent.postMessage(message, '*');
+                } catch (error) {
+                    console.error('Failed to notify parent:', error);
+                }
+            }
+            
+            handleEstimateRequest = (estimateData) => {
+                this.notifyParent({
+                    type: 'GFE_ESTIMATE_REQUEST',
+                    data: estimateData,
+                    sessionId: this.state.sessionId
+                });
+            }
+            
+            handleLeadCapture = (leadData) => {
+                this.notifyParent({
+                    type: 'GFE_LEAD_CAPTURED',
+                    data: leadData,
+                    sessionId: this.state.sessionId
+                });
+            }
+            
+            trackAnalytics = (event, data) => {
+                this.notifyParent({
+                    type: 'GFE_ANALYTICS_EVENT',
+                    event: event,
+                    data: data,
+                    sessionId: this.state.sessionId
+                });
+            }
+            
+            retry = () => {
+                this.setState({ loading: true, error: null });
+                this.initializeComponent();
+            }
+            
+            render() {
+                const { loading, error } = this.state;
+                
+                if (loading) {
+                    return (
+                        <div className="loading-container">
+                            <div className="loading-spinner"></div>
+                            <p>Loading Window Estimator...</p>
+                        </div>
+                    );
+                }
+                
+                if (error) {
+                    return (
+                        <div className="error-container">
+                            <h2>Error Loading Estimator</h2>
+                            <p>{error}</p>
+                            <button className="retry-button" onClick={this.retry}>
+                                Retry
+                            </button>
+                        </div>
+                    );
+                }
+                
+                // Render the main estimator component
+                return (
+                    <div>
+                        <div style={{ textAlign: 'center', padding: '40px' }}>
+                            <h2 style={{ color: 'var(--gfe-gold)', marginBottom: '20px' }}>
+                                Window Estimator Ready
+                            </h2>
+                            <p style={{ color: 'var(--gfe-silver-light)', marginBottom: '30px' }}>
+                                This is where the full Window Estimator React component would be rendered.
+                            </p>
+                            <p style={{ color: 'var(--gfe-silver-light)', fontSize: '0.9rem' }}>
+                                The actual WindowEstimator component from src/widgets/WindowEstimator/WindowEstimator.js 
+                                would be imported and rendered here.
+                            </p>
+                        </div>
+                    </div>
+                );
+            }
+        }
+        
+        // Render the component
+        ReactDOM.render(<WindowEstimatorIframe />, document.getElementById('windowEstimatorRoot'));
+    </script>
+</body>
+</html>

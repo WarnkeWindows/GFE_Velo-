@@ -1,0 +1,160 @@
+swagger: '2.0'
+info:
+  title: GFE API Gateway
+  description: Good Faith Exteriors API Gateway Configuration
+  version: 1.0.0
+host: gfe-api-gateway-aonuaov3.uc.gateway.dev
+schemes:
+  - https
+produces:
+  - application/json
+securityDefinitions:
+  api_key:
+    type: apiKey
+    name: X-API-Key
+    in: header
+paths:
+  /health:
+    get:
+      summary: Health check endpoint
+      operationId: health_check
+      security: []
+      responses:
+        200:
+          description: Service is healthy
+          schema:
+            type: object
+            properties:
+              status:
+                type: string
+                example: "healthy"
+              timestamp:
+                type: string
+                example: "2024-01-01T00:00:00Z"
+              services:
+                type: object
+                properties:
+                  backend:
+                    type: string
+                    example: "operational"
+                  database:
+                    type: string  
+                    example: "operational"
+      x-google-backend:
+        address: https://gfe-backend-837326026335.us-central1.run.app/health
+        protocol: h2
+  /api/claude/admin-assistant:
+    post:
+      summary: Admin assistant endpoint
+      operationId: admin_assistant
+      security:
+        - api_key: []
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            type: object
+            properties:
+              prompt:
+                type: string
+              options:
+                type: object
+      responses:
+        200:
+          description: Assistant response
+      x-google-backend:
+        address: https://gfe-backend-837326026335.us-central1.run.app/api/claude/admin-assistant
+        protocol: h2
+  /api/claude/analyze-system:
+    post:
+      summary: System analysis endpoint
+      operationId: analyze_system
+      security:
+        - api_key: []
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            type: object
+            properties:
+              component:
+                type: string
+              analysisType:
+                type: string
+      responses:
+        200:
+          description: Analysis response
+      x-google-backend:
+        address: https://gfe-backend-837326026335.us-central1.run.app/api/claude/analyze-system
+        protocol: h2
+  /api/claude/generate-config:
+    post:
+      summary: Configuration generation endpoint
+      operationId: generate_config
+      security:
+        - api_key: []
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            type: object
+            properties:
+              configType:
+                type: string
+              requirements:
+                type: object
+      responses:
+        200:
+          description: Configuration response
+      x-google-backend:
+        address: https://gfe-backend-837326026335.us-central1.run.app/api/claude/generate-config
+        protocol: h2
+  /api/claude/troubleshoot:
+    post:
+      summary: Troubleshooting endpoint
+      operationId: troubleshoot
+      security:
+        - api_key: []
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            type: object
+            properties:
+              issue:
+                type: string
+              context:
+                type: object
+      responses:
+        200:
+          description: Troubleshooting response
+      x-google-backend:
+        address: https://gfe-backend-837326026335.us-central1.run.app/api/claude/troubleshoot
+        protocol: h2
+  /api/claude/review-code:
+    post:
+      summary: Code review endpoint
+      operationId: review_code
+      security:
+        - api_key: []
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            type: object
+            properties:
+              code:
+                type: string
+              reviewType:
+                type: string
+      responses:
+        200:
+          description: Code review response
+      x-google-backend:
+        address: https://gfe-backend-837326026335.us-central1.run.app/api/claude/review-code
+        protocol: h2
